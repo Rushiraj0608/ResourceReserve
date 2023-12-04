@@ -1,4 +1,52 @@
-import Image from 'next/image'
+import Image from "next/image";
+import { initializeApp } from "firebase/app";
+import { getDocs, getFirestore } from "firebase/firestore";
+import { collection, doc, getDoc, setDoc } from "firebase/firestore";
+import { query, where } from "firebase/firestore";
+
+// TODO: Replace the following with your app's Firebase project configuration
+// See: https://support.google.com/firebase/answer/7015592
+const firebaseConfig = {
+  apiKey: "AIzaSyCko1_NwWIIFD5bwSd9M2MdVFgyuY8lNWU",
+  authDomain: "resourcereserve-b4329.firebaseapp.com",
+  databaseURL: "https://resourcereserve-b4329-default-rtdb.firebaseio.com",
+  projectId: "resourcereserve-b4329",
+  storageBucket: "resourcereserve-b4329.appspot.com",
+  messagingSenderId: "254105232522",
+  appId: "1:254105232522:web:d61038e0bb5e2b07933973",
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+// Initialize Cloud Firestore and get a reference to the service
+const db = getFirestore(app);
+let collection1 = collection(db, "users");
+let querySnapshot = await getDocs(collection1);
+
+// querySnapshot.forEach((doc) => {
+//   // doc.data() is never undefined for query doc snapshots
+//   console.log(doc.id, " => ", doc.data());
+// });
+// await setDoc(doc(db, "users", "newUsers"), {
+//   name: "Los Angeles",
+//   state: "CA",
+//   country: "USA",
+// });
+
+const q = query(
+  collection(db, "users"),
+  where("email", "==", "bhanuroyal.koppolu@gmail.com")
+);
+
+querySnapshot = await getDocs(q);
+
+console.log(Object.keys(querySnapshot));
+querySnapshot.forEach((x) => {
+  console.log(x.id);
+  console.log(Object.keys(x));
+});
+console.log("setting");
 
 export default function Home() {
   return (
@@ -15,7 +63,7 @@ export default function Home() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            By{' '}
+            By
             <Image
               src="/vercel.svg"
               alt="Vercel Logo"
@@ -47,7 +95,7 @@ export default function Home() {
           rel="noopener noreferrer"
         >
           <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
+            Docs
             <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
               -&gt;
             </span>
@@ -64,7 +112,7 @@ export default function Home() {
           rel="noopener noreferrer"
         >
           <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
+            Learn
             <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
               -&gt;
             </span>
@@ -81,7 +129,7 @@ export default function Home() {
           rel="noopener noreferrer"
         >
           <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
+            Templates
             <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
               -&gt;
             </span>
@@ -98,7 +146,7 @@ export default function Home() {
           rel="noopener noreferrer"
         >
           <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
+            Deploy
             <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
               -&gt;
             </span>
@@ -109,5 +157,5 @@ export default function Home() {
         </a>
       </div>
     </main>
-  )
+  );
 }
