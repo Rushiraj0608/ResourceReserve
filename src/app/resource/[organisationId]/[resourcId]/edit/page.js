@@ -12,13 +12,13 @@ import EditResource from "./EditResource";
 // TODO: Replace the following with your app's Firebase project configuration
 // See: https://support.google.com/firebase/answer/7015592
 const firebaseConfig = {
-  apiKey: "AIzaSyCko1_NwWIIFD5bwSd9M2MdVFgyuY8lNWU",
-  authDomain: "resourcereserve-b4329.firebaseapp.com",
-  databaseURL: "https://resourcereserve-b4329-default-rtdb.firebaseio.com",
-  projectId: "resourcereserve-b4329",
-  storageBucket: "resourcereserve-b4329.appspot.com",
-  messagingSenderId: "254105232522",
-  appId: "1:254105232522:web:d61038e0bb5e2b07933973",
+  apiKey: ,
+  authDomain: ,
+  databaseURL: ,
+  projectId: ,
+  storageBucket: ,
+  messagingSenderId: ,
+  appId: ,
 };
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
