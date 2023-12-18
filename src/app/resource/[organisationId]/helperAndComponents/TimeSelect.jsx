@@ -1,8 +1,17 @@
 import { useState } from "react";
 
 const TimeSelect = (props) => {
+  // console.log(props.schedule);
   let sampleSchedule = props.schedule
-    ? props.schedule
+    ? {
+        monday: props.schedule.monday,
+        tuesday: props.schedule.tuesday,
+        wednesday: props.schedule.wednesday,
+        thursday: props.schedule.thursday,
+        friday: props.schedule.friday,
+        saturday: props.schedule.saturday,
+        sunday: props.schedule.sunday,
+      }
     : {
         monday: "",
         tuesday: "",
@@ -14,7 +23,6 @@ const TimeSelect = (props) => {
       };
   let template = { openTime: "", closeTime: "" };
   let time = [
-    "",
     "00:00",
     "00:15",
     "00:30",
@@ -185,15 +193,14 @@ const TimeSelect = (props) => {
 
   return (
     <div className="capitalize mt-5 mb-5">
-      <span>
-        <p className="text-bolder text-xl font-extrabold">Schedule Timings</p>
+      <div>
         {Object.keys(schedule).map((day) => (
           <div
             key={day}
             className="border-b-2 mb-2 mt-2 grid grid-cols-[1fr_5fr] gap-5 pl-5"
           >
             <span className="mb-2 mt-2 row-span-full w-fit">{day}</span>
-            <span className="mb-2 mt-2">
+            <div className="mb-2 mt-2">
               <select
                 name={day}
                 className="mb-3"
@@ -232,11 +239,14 @@ const TimeSelect = (props) => {
                         name="openTime"
                         id={`${day}-openTime`}
                         onChange={changeTime}
-                        className="ml-1 mr-3"
+                        className="ml-1 mr-3 px-3 py-2 text-center"
                         defaultValue={schedule[day][0] ? schedule[day][0] : ""}
                       >
+                        <option value="" disabled>
+                          Select Open Time
+                        </option>
                         {time.map((x, y) => (
-                          <option value={x} key={x} disabled={y == 0}>
+                          <option value={x} key={x}>
                             {x}
                           </option>
                         ))}
@@ -252,6 +262,9 @@ const TimeSelect = (props) => {
                         className="ml-2 mr-1"
                         defaultValue={schedule[day][1]}
                       >
+                        <option value="" disabled>
+                          Select Close Time
+                        </option>
                         {time.map((x) => (
                           <option value={x} key={x}>
                             {x}
@@ -274,10 +287,10 @@ const TimeSelect = (props) => {
                   ))}
                 </div>
               )}
-            </span>
+            </div>
           </div>
         ))}
-      </span>
+      </div>
       <div className="text-red-500 text-center">
         {error?.general &&
           error?.general.length > 0 &&

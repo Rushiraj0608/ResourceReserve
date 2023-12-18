@@ -4,9 +4,9 @@ import { nameCheck } from "./helper";
 const Tags = (props) => {
   const [error, setError] = useState("");
   const addTags = () => {
-    let tag = document.getElementById("addTag").value;
+    let tag = document.getElementById("createResourceTags").value;
     let tags = [];
-    tag = nameCheck(tag);
+    tag = nameCheck(tag, "tag");
     if (!tag.validity) {
       setError(tag.data);
     } else {
@@ -14,25 +14,23 @@ const Tags = (props) => {
       tags = [...props.tags, tag.data];
       props.setTags(tags);
     }
-    document.getElementById("addTag").value = "";
+    document.getElementById("createResourceTags").value = "";
   };
-  const removeTag = (e) => {
-    let tag = e.target.getAttribute("tag");
+  const removeTag = (tag) => {
     let tags = props.tags.filter((x) => x != tag);
     console.log(tags);
     props.setTags(tags);
   };
   return (
-    <div className="grid grid-cols-[1fr_5fr]">
-      <p className="row-span-fulll">Tags</p>
+    <div className="">
       <div className="ml-2">
-        <label htmlFor="tags" className="block">
+        <label htmlFor="createResourceTags" className="block">
           Enter tag name and click Add tag to add tags
         </label>
         <input
           type="text"
-          name="tags"
-          id="addTag"
+          name="createResourceTags"
+          id="createResourceTags"
           className=" border-b-4 w-max border-black focus:outline-none"
           placeholder="Enter tag name "
         />
@@ -52,10 +50,9 @@ const Tags = (props) => {
                 className="inline-block bg-gray-300 rounded-xl border-2 p-2 m-2 w-fit "
                 key={`${x}_tag`}
               >
-                <p className="inline-block text-lg">{x}</p>
+                <span className=" text-lg">{x}</span>
                 <button
-                  onClick={removeTag}
-                  tag={x}
+                  onClick={() => removeTag(x)}
                   className="text-xs"
                   type="button"
                 >

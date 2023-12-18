@@ -10,7 +10,7 @@ const stringCheck = (str) => {
   }
   str = str.trim();
   if (str.length < 3) {
-    result.data = `cannot be less than`;
+    result.data = `number of characters cannot be less than 3`;
     return result;
   }
   result.data = str;
@@ -102,7 +102,69 @@ const contactCheck = (contact) => {
   return { data, validity: 1 };
 };
 
+const createResourceCheck = (resource) => {
+  let errors = {};
+  let validity = 1;
+  let resultResource = {};
+  let exclude = [
+    "images",
+    "permission",
+    "schedule",
+    "tags",
+    "organisationId",
+    "state",
+  ];
+  let state = resource.state;
+  if (resource.description)
+    resource.description = rulesCheck(resource.description, "description");
+  if (resource.rules) resource.rules = rulesCheck(resource.rules, "rules");
+  if (resource.name)
+    resource.name = nameCheck(resource.name, "Name of the Resource");
+  if (resource.type) resource.type = nameCheck(resource.type, "type");
+  if (resource.address1)
+    resource.address1 = nameCheck(resource.address1, "address1");
+  if (resource.address2)
+    resource.address2 = nameCheck(resource.address2, "address2");
+  if (resource.city) resource.city = nameCheck(resource.city, "city");
+  if (resource.contact) resource.contact = contactCheck(resource.contact);
+  if (resource.email) resource.email = emailCheck(resource.email);
+  if (resource.capacity) resource.capacity = capacityCheck(resource.capacity);
+  if (resource.reservationGap)
+    resource.reservationGap = numberCheck(resource.reservationGap);
+  if (resource.reservationLength)
+    resource.reservationLength = numberCheck(resource.reservationLength);
+  if (resource.schedule) {
+    if (Object.values(resource.schedule).flat(Infinity).length < 3) {
+      validity = 0;
+      errors.schedule = "the resource must be available atleast for two days";
+    }
+  }
+  for (let key in resource) {
+    if (exclude.includes(key)) {
+      resultResource[key] = resource[key];
+    } else if (resource[key].validity) {
+      resultResource[key] = resource[key].data;
+    } else if (resource[key].data && !resource[key].validity) {
+      validity = 0;
+      errors[key] = resource[key].data;
+    }
+  }
+  resource.state = state;
+  return { validity, resource: resultResource, errors };
+};
+
 const formDataCheck = (resource) => {
+  let errors = {};
+  let resultResource = {};
+  let validity = 1;
+  let exclude = [
+    "images",
+    "permission",
+    "schedule",
+    "tags",
+    "organisationId",
+    "state",
+  ];
   resource.description = rulesCheck(resource.description, "description");
   resource.rules = rulesCheck(resource.rules, "rules");
   resource.name = nameCheck(resource.name, "Name of the Resource");
@@ -113,16 +175,143 @@ const formDataCheck = (resource) => {
   resource.contact = contactCheck(resource.contact);
   resource.email = emailCheck(resource.email);
   resource.capacity = capacityCheck(resource.capacity);
-  resource.reservationGap = numberCheck(resource.reservationGap);
-  resource.reservationLength = numberCheck(resource.reservationLength);
+  if (resource.reservationGap)
+    resource.reservationGap = numberCheck(resource.reservationGap);
+  if (resource.reservationLength)
+    resource.reservationLength = numberCheck(resource.reservationLength);
+  for (let key in resource) {
+    if (exclude.includes(key)) {
+      resultResource[key] = resource[key];
+    } else if (resource[key].validity) {
+      resultResource[key] = resource[key].data;
+    } else if (resource[key].data && !resource[key].validity) {
+      validity = 0;
+      errors[key] = resource[key].data;
+    }
+  }
 
-  return resource;
+  return { validity, resource: resultResource, errors };
+};
+
+const createOrganisationCheck = (organisation) => {
+  let errors = {};
+  let checkedOrganisation = {};
+
+  if (!organisation.name.length > 0)
+    errors = { ...errors, name: "organisation name cannot be empty" };
+  else {
+    let { validity, data } = nameCheck(organisation.name, "organisation name");
+    if (!validity) {
+      errors = { ...errors, name: data };
+    } else {
+      checkedOrganisation.name = data;
+    }
+  }
+  if (!organisation.email.length > 0)
+    errors = { ...errors, email: "organisation email cannot be empty" };
+  else {
+    let { validity, data } = emailCheck(organisation.email);
+    if (!validity) {
+      errors = { ...errors, email: data };
+    } else {
+      checkedOrganisation.email = data;
+    }
+  }
+  if (!organisation.contact.length > 0)
+    errors = { ...errors, contact: "organisation contact cannot be empty" };
+  else {
+    let { validity, data } = contactCheck(
+      organisation.contact,
+      "organisation name"
+    );
+    if (!validity) {
+      errors = { ...errors, contact: data };
+    } else {
+      checkedOrganisation.contact = data;
+    }
+  }
+
+  if (organisation.admins.length > 0) {
+    organisation.admins.map((admin) => {
+      if (admin.email == organisation.email) {
+        errors = {
+          ...errors,
+          admins: "admin email must not be the same as the organisation",
+        };
+      }
+    });
+  }
+  checkedOrganisation.admins = [...organisation.admins];
+  if (Object.values(errors).toString().length > 0)
+    return { validity: 0, data: errors };
+  else {
+    return { validity: 1, data: checkedOrganisation };
+  }
+};
+
+const editOrganisationCheck = (organisation) => {
+  let errors = {};
+  let checkedOrganisation = {};
+  console.log(organisation);
+  if (!organisation.name.length > 0)
+    errors = { ...errors, name: "organisation name cannot be empty" };
+  else {
+    let { validity, data } = nameCheck(organisation.name, "organisation name");
+    if (!validity) {
+      errors = { ...errors, name: data };
+    } else {
+      checkedOrganisation.name = data;
+    }
+  }
+  if (!organisation.email.length > 0)
+    errors = { ...errors, email: "organisation email cannot be empty" };
+  else {
+    let { validity, data } = emailCheck(organisation.email);
+    if (!validity) {
+      errors = { ...errors, email: data };
+    } else {
+      checkedOrganisation.email = data;
+    }
+  }
+  if (!`${organisation.contact}`.length > 0)
+    errors = { ...errors, contact: "organisation contact cannot be empty" };
+  else {
+    let { validity, data } = contactCheck(
+      organisation.contact,
+      "organisation name"
+    );
+    if (!validity) {
+      errors = { ...errors, contact: data };
+    } else {
+      checkedOrganisation.contact = data;
+    }
+  }
+
+  if (organisation.admins.length > 0) {
+    organisation.admins.map((admin) => {
+      if (admin.email == organisation.email) {
+        errors = {
+          ...errors,
+          admin: "admin email must not be the same as the organisation",
+        };
+      }
+    });
+  }
+  if (Object.values(errors).toString().length > 0) {
+    return { validity: 0, data: errors };
+  } else {
+    checkedOrganisation.admins = [...organisation.admins];
+    return { validity: 1, data: checkedOrganisation };
+  }
 };
 export {
+  createResourceCheck,
   nameCheck,
   capacityCheck,
   emailCheck,
   contactCheck,
   rulesCheck,
   formDataCheck,
+  createOrganisationCheck,
+  editOrganisationCheck,
 };
