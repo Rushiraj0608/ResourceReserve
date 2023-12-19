@@ -11,6 +11,14 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "../../config";
+import { redirect } from "next/dist/server/api-utils";
+
+let currentUser = {
+  email: "user@superAdmin.com",
+  userType: "superAdmin",
+  firstName: "userFirstName",
+  lastName: "userLastName",
+};
 
 let checkManager = async (adminEmail) => {
   "use server";
@@ -21,19 +29,41 @@ let checkManager = async (adminEmail) => {
   let user = {};
   q.forEach((x) => {
     user = x.data();
-    user._id = x.id;
+    user.id = x.id;
   });
 
   if (Object.keys(user).length > 0) {
-    let { email, firstName, lastName, ...remaining } = user;
-    user = { email, firstName, lastName };
-    return { data: user, validity: 1 };
+    // userType admin cant add to an organistion
+    if (user.userType == "admin")
+      return {
+        validity: 0,
+        error: "User is already an admin to another organisation",
+        data: adminEmail,
+      };
+    // userType manager cant add to an organistion
+    else if (user.userType == "manager")
+      return {
+        validity: 0,
+        error:
+          "User is a manager at a resource please remove him as a manager and add as an admin",
+      };
+    else if (user.userType == "superAdmin")
+      return {
+        validity: 0,
+        error: `Cant add user with email ${adminEmail}`,
+      };
+    // userType admin can add to an organistion
+    else if (user.userType == "user") {
+      let { password, ...remaining } = user;
+      remaining.userType = "admin";
+      return { data: remaining, validity: 1 };
+    }
   } else {
-    return { data: adminEmail, validity: 0 };
+    return { error: "noUser", data: adminEmail, validity: 0 };
   }
 };
 
-let checkResource = async (email) => {
+let checkOrganisationEmail = async (email) => {
   "use server";
   let colRef = collection(db, "organisations");
   let q = query(colRef, where("email", "==", email));
@@ -50,24 +80,36 @@ let checkResource = async (email) => {
   }
 };
 
-let addOrganisation = async (admin) => {
+const updateUser = async (userid) => {
+  //if user is not available or network
+  "use server";
+  await updateDoc(doc(db, "users", userid), {
+    userType: "admin",
+  });
+};
+let addOrganisation = async (newOrganisation) => {
   "use server";
 
-  admin.createdAt = new Date();
-  admin.updatedAt = new Date();
-  admin.managers = [];
-  admin.resources = [];
-  admin.createdBy = {
-    name: "new user",
-    id: "aslojflaksdnlfiuaisudhfiluas",
+  newOrganisation.createdAt = new Date();
+  newOrganisation.updatedAt = new Date();
+  newOrganisation.managers = [];
+  newOrganisation.resources = [];
+  newOrganisation.createdBy = {
+    ...currentUser,
   };
-  admin.admins = [...admin.admins, admin.createdBy];
 
-  let organisation = await checkResource(admin.email);
+  let organisation = await checkOrganisationEmail(newOrganisation.email);
   console.log(organisation, "createOrd");
   if (organisation.validity) {
-    const newDoc = await addDoc(collection(db, "organisations"), admin);
+    const newDoc = await addDoc(
+      collection(db, "organisations"),
+      newOrganisation
+    );
     console.log(newDoc.id, "kadbfkbasdkjbfuasbdfbhkajdsfky");
+    newOrganisation.admins.map(async (admin) => {
+      updateUser(admin.id);
+      console.log("updated as admin");
+    });
     return { doc: newDoc.id, validity: 1 };
   } else {
     return { validity: 0 };
@@ -75,6 +117,11 @@ let addOrganisation = async (admin) => {
 };
 
 export default async function Page() {
+  if (!currentUser) {
+    redirect("/login");
+  } else if (currentUser.userType != "superAdmin") {
+    /**need to log this user out or redirect to home page */
+  }
   return (
     <CreateOrganisation
       checkManager={checkManager}

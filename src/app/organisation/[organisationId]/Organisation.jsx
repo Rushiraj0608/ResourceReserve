@@ -1,3 +1,5 @@
+//this whi=ole page is unecessary
+
 "use client";
 import { useState } from "react";
 import Link from "next/link";

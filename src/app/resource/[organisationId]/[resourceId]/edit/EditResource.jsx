@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import { useState, useEffect } from "react";
 import TimeSelect from "../../helperAndComponents/TimeSelect";
 import Tags from "../../helperAndComponents/Tags";
 import AddImages from "../../helperAndComponents/addImages";
@@ -15,8 +15,9 @@ const EditResource = ({ existingResource, params, setData, checkManager }) => {
     userType: "admin",
     organisation: "someRandomOrganisation",
   };
-  let [resource, setResource] = React.useState(existingResource);
-  let [errors, setErrors] = React.useState({});
+  let [resource, setResource] = useState(existingResource);
+  let [errors, setErrors] = useState({});
+
   let states = [
     "Alabama",
     "Alaska",
@@ -139,7 +140,7 @@ const EditResource = ({ existingResource, params, setData, checkManager }) => {
       console.log(images);
       updateResource.images = [...images];
       console.log(updateResource, existingResource);
-      console.log(await setData(existingResource, resource, params));
+      console.log(await setData(existingResource, result.resource, params));
     }
   };
   const setTags = (tags) => {
@@ -157,25 +158,25 @@ const EditResource = ({ existingResource, params, setData, checkManager }) => {
   };
   const addManager = async (manager) => {
     manager = await checkManager(manager);
-
-    if (!manager.validity) {
+    console.log(manager);
+    if (!manager.validity && manager.error == "noUser") {
       let response = await emailjs.send(
-        process.env.EMAILJS_SERVICEID,
-        process.env.EMAILJS_TEMPLATEID,
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICEID,
+        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATEID,
         {
           reply_to: manager.data,
           organisation_name: "neworganisation",
           signup: "http://localhost:3000/auth/signup",
           role: "admin",
         },
-        process.env.EMAILJS_PUBLICKEY
+        process.env.NEXT_PUBLIC_EMAILJS_PUBLICKEY
       );
 
       if (response.status == 200) {
         console.log("this is clicking");
         return {
           data: `the user with email id ${manager.data} doesnt have an account we sent an email to create an account`,
-          validity: 1,
+          validity: 0,
         };
       } else {
         return {
@@ -183,6 +184,8 @@ const EditResource = ({ existingResource, params, setData, checkManager }) => {
           validity: 0,
         };
       }
+    } else if (!manager.validity) {
+      return manager;
     } else {
       let temp = [...resource.managedBy, manager.data];
       resource.managedBy = [...temp];
@@ -486,6 +489,7 @@ const EditResource = ({ existingResource, params, setData, checkManager }) => {
             </span>
           </div>
           <label> Manager</label>
+
           <AddManager
             setManager={editManager}
             managers={resource.managedBy}

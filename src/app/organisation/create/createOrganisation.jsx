@@ -49,7 +49,7 @@ const CreateOrganisation = (props) => {
       } else {
         setErrors({
           ...errors,
-          general: "organisation with this email exists",
+          general: create.data,
         });
       }
     }
@@ -96,6 +96,7 @@ const CreateOrganisation = (props) => {
         let { data, validity } = await addUser(adminEmail);
 
         if (validity) {
+          console.log(data);
           admin = [...admin, data];
           setOrganisation({ ...organisation, admins: admin });
           document.getElementById("createOrganisationAdmins").value = "";
@@ -114,19 +115,19 @@ const CreateOrganisation = (props) => {
   const addUser = async (manager) => {
     manager = await props.checkManager(manager);
 
-    if (!manager.validity) {
+    if (!manager.validity && manager.error == "noUser") {
       console.log("trying sending mails");
       try {
         let response = await emailjs.send(
-          process.env.EMAILJS_SERVICEID,
-          process.env.EMAILJS_TEMPLATEID,
+          process.env.NEXT_PUBLIC_EMAILJS_SERVICEID,
+          process.env.NEXT_PUBLIC_EMAILJS_TEMPLATEID,
           {
             reply_to: manager.data,
             organisation_name: "neworganisation",
             signup: "http://localhost:3000/auth/signup",
             role: "admin",
           },
-          process.env.EMAILJS_PUBLICKEY
+          process.env.NEXT_PUBLIC_EMAILJS_PUBLICKEY
         );
 
         if (response.status == 200) {
@@ -147,6 +148,9 @@ const CreateOrganisation = (props) => {
         disappearing();
         document.getElementById("createOrganisationAdmins").value = "";
       }
+    } else if (!manager.validity) {
+      setMessage(manager.error);
+      disappearing();
     } else {
       return { ...manager, validity: 1 };
     }
@@ -156,19 +160,26 @@ const CreateOrganisation = (props) => {
     setOrganisation({ ...organisation, admins: admin });
   };
   return (
-    <div className="bg-slate-400 h-full w-full text-black m-auto">
+    <div className="bg-white h-screen w-full text-black grid grid-rows-4 justify-items-center">
+      <p className="text-8xl font-extrabold text-center my-10  h-fit">
+        CREATE ORGANISATION
+      </p>
       <form
         onSubmit={(e) => {
           createOrgCheck(e);
         }}
+        className="w-full h-full"
       >
         {errors && errors.general && errors.general.length > 0 && (
           <p>{errors.general}</p>
         )}
-        <div className="grid grid-cols-2">
-          <label htmlFor="createOrganisationName" className="text-end">
-            Organisation Name
-          </label>
+        <div className=" row-span-3 grid grid-cols-3 w-9/12 px-10 py-10 gap-x-10 gap-y-5 align-middle [&>*:nth-child(odd)]:text-right [&>*:nth-child(even)]:col-span-2 shadow-[0_20px_40px_rgba(0,0,0,0.3)] m-auto">
+          <span class="group relative flex justify-self-end ">
+            <label htmlFor="createOrganisationName">Organisation Name</label>
+            <span class="absolute top-10 scale-0 rounded bg-gray-800 p-2 text-xs text-white group-hover:scale-100">
+              Name of the creating organisation
+            </span>
+          </span>
           <div>
             <input
               onChange={(e) => {
@@ -179,6 +190,7 @@ const CreateOrganisation = (props) => {
               placeholder="Enter Name of the Organisation"
               name="organisationName"
               id="createOrganisationName"
+              className=" border-b-4 border-black w-8/12"
             />
             {errors && errors.name && errors.name.length > 0 && (
               <p>{errors.name}</p>
@@ -195,6 +207,7 @@ const CreateOrganisation = (props) => {
               placeholder="Enter Email of the Organisation"
               name="organisationEmail"
               id="createOrganisationEmail"
+              className=" border-b-4 border-black w-8/12"
             />
             {errors && errors.email && errors.email.length > 0 && (
               <p>{errors.email}</p>
@@ -212,25 +225,28 @@ const CreateOrganisation = (props) => {
               type="number"
               placeholder="Enter Name of the Organisation"
               name="organisationContact"
-              id="createOrganisationContacct"
+              id="createOrganisationContact"
+              className=" border-b-4 border-black w-8/12"
             />
             {errors && errors.contact && errors.contact.length > 0 && (
               <p>{errors.contact}</p>
             )}
           </div>
           <label htmlFor="createOrganisationAdmins">Admin</label>
-          <div>
-            <div>
+          <div className="h-full">
+            <div className="grid grid-cols-3 gap-2">
               <input
                 type="email"
                 id="createOrganisationAdmins"
                 name="createOrganisationAdmins"
                 placeholder="Add Admin's Email Address"
+                className=" border-b-4 border-black w-full col-span-2"
               />
               <button
                 type="button"
                 onClick={addAdmin}
                 disabled={organisation.admins.length >= 2}
+                className="bg-green-500 px-3 py-1 w-fit h-fit  rounded-lg "
               >
                 Add Admin
               </button>
@@ -241,26 +257,36 @@ const CreateOrganisation = (props) => {
               )}
               {message && message.length > 0 && <p>{message}</p>}
             </div>
-            {organisation.admins && organisation.admins.length > 0 && (
-              <>
-                {organisation.admins.map((admin, index) => (
-                  <div key={`organisationCreateAdmin_${index}`}>
-                    <p>Name : {`${admin.firstName} ${admin.lastName}`}</p>
-                    <p>Email : {admin.email}</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        removeAdmin(admin.email);
-                      }}
+            <div className=" py-1 grid grid-cols-2 h-fit my-5 justify-items-center gap-x-2 gap-y-2 ">
+              {organisation.admins && organisation.admins.length > 0 && (
+                <>
+                  {organisation.admins.map((admin, index) => (
+                    <span
+                      className="px-5 py-3 shadow-[0_20px_40px_rgba(0,0,0,0.3)] rounded-md grid gap-1 "
+                      key={`organisationCreateAdmin_${index}`}
                     >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </>
-            )}
+                      <span>
+                        Name : {`${admin.firstName} ${admin.lastName}`}
+                      </span>
+                      <span>Email : {admin.email}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          removeAdmin(admin.email);
+                        }}
+                        className="bg-red-300 px-3 py-1"
+                      >
+                        Remove
+                      </button>
+                    </span>
+                  ))}
+                </>
+              )}
+            </div>
           </div>
-          <button>Create Organisation</button>
+          <button className="w-fit my-5 px-5 py-3 text-lg bg-green-500 justify-self-center rounded-lg col-span-full">
+            Create Organisation
+          </button>
         </div>
       </form>
     </div>

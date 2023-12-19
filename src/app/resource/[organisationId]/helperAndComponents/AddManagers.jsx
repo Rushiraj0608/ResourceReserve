@@ -5,9 +5,7 @@ function App({ setManager, managers, currentUser, addManager }) {
   let [errors, setErrors] = useState([]);
   let [message, setMessage] = useState([]);
   function removeManagedBy(e) {
-    let manager = managers.filter(
-      (x) => x._id != e.target.getAttribute("manager")
-    );
+    let manager = managers.filter((x) => x.id != e);
     console.log(manager);
     setManager(manager);
   }
@@ -19,16 +17,15 @@ function App({ setManager, managers, currentUser, addManager }) {
       email = await addManager(email);
       if (email.validity) {
         document.getElementById("editResourceManager").value = "";
-        if (email.data.length > 0) {
-          message = [...message, email.data];
-          setMessage([...message]);
-          setTimeout(() => {
-            setMessage([]);
-          }, "10000");
-        }
+        setMessage("added manager successfully");
+        setTimeout(() => {
+          setMessage();
+        }, "10000");
       } else {
-        errors = [...errors, email.data];
-        setErrors([...errors]);
+        setMessage(email.error);
+        setTimeout(() => {
+          setMessage("");
+        }, "10000");
       }
     } else {
       errors = [...errors, email.data];
@@ -56,13 +53,11 @@ function App({ setManager, managers, currentUser, addManager }) {
           </button>
         </span>
         <div className="text-center">
-          {message &&
-            message.length > 0 &&
-            message.map((x, y) => (
-              <p className="w-3/5" key={`messages_${y}_addmanager`}>
-                {x}
-              </p>
-            ))}
+          {message && message.length > 0 && (
+            <p className="w-3/5" key={`messages_addmanager`}>
+              {message}
+            </p>
+          )}
           {errors &&
             errors.length > 0 &&
             errors.map((x, y) => <p key={`errors_${x}_addManager`}>{x}</p>)}
@@ -71,7 +66,7 @@ function App({ setManager, managers, currentUser, addManager }) {
           {(managers &&
             managers?.length > 0 &&
             managers.map((x) => (
-              <div key={`${x._id}_manager_data`}>
+              <div key={`${x.id}_manager_data`}>
                 <p>{`Name : ${x.firstName} ${x.lastName}`}</p>
                 <a href="#">Contact : {x.email}</a>
                 <p>{`Role:${x.userType}`}</p>
@@ -79,20 +74,20 @@ function App({ setManager, managers, currentUser, addManager }) {
                   type="button"
                   className="px-4 py-2 text-white bg-blue-600 rounded focus:outline-none backdrop-blur-sm disabled:opacity-50"
                   onClick={() => {
-                    removeManagedBy(x._id);
+                    removeManagedBy(x.id);
                   }}
                   alt="added new image"
                   disabled={
-                    currentUser.userType == "admin"
+                    (currentUser.userType == "admin"
                       ? false
                       : null ||
                         (currentUser.userType == "manager" &&
                         x.userType == "manager"
                           ? false
-                          : true)
+                          : true)) || managers.length < 2
                   }
                 >
-                  ❌ Remover User
+                  Remover Manager
                 </button>
               </div>
             ))) || (

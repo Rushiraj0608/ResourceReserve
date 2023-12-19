@@ -6,9 +6,14 @@ import Tags from "../helperAndComponents/Tags";
 import AddImages from "../helperAndComponents/addImages";
 import * as formdata from "../helperAndComponents/helper";
 import { s3 } from "../../../config";
-import "./CreateResource.css";
+import { getCountFromServer } from "firebase/firestore";
 
-const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
+const CreateResource = ({
+  submitResource,
+  organisationId,
+  getFireBaseID,
+  getUser,
+}) => {
   let resourceTemplate = {
     organisationId,
     name: "",
@@ -28,18 +33,20 @@ const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
     images: [],
     tags: [],
     capacity: "",
+    managedBy: [],
     permission: false,
     email: "",
     contact: "",
     rules: "",
     address1: "",
     address2: "",
+    state: "",
   };
   let [resource, setResource] = React.useState(resourceTemplate);
   let [errors, setError] = React.useState({});
+  let [message, setMessage] = React.useState("");
   let [loading, setLoading] = React.useState(0);
   let states = [
-    "Select A State",
     "Alabama",
     "Alaska",
     "Arizona",
@@ -161,14 +168,74 @@ const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
     resource["schedule"] = schedule;
     setResource({ ...resource });
   };
+  const disappearing = () => {
+    setTimeout(() => {
+      setMessage("");
+    }, 10000);
+  };
 
   const setImages = (images) => {
     resource.images = [...images];
     setResource({ ...resource });
   };
+  const addManager = async () => {
+    try {
+      if (resource.managedBy.length > 2)
+        throw `cant add more that 3 managers at the time of creating resource`;
+      let managerEmail = document.getElementById("addResourceManager").value;
+      managerEmail = formdata.emailCheck(managerEmail);
+      if (!managerEmail.validity) {
+        setError({ ...errors, managers: managerEmail.data });
+      } else {
+        resource.managedBy.map((manager) => {
+          if (manager.email == managerEmail.data) {
+            throw `this email is already a manager so remove as a manager and add as an admin`;
+          }
+        });
+
+        let getData = await getUser(managerEmail.data);
+        if (getData.validity) {
+          console.log(getData.data);
+          let managers = [...resource.managedBy];
+          console.log("managers", managers);
+          managers = [...managers, getData.data];
+          console.log("managers", managers);
+          setResource({
+            ...resource,
+            managedBy: managers,
+          });
+          document.getElementById("addResourceManager").value = "";
+        } else {
+          if (getData.error == "noUser") console.log("sendEmail");
+          else {
+            setMessage(getData.error);
+            disappearing();
+            document.getElementById("addResourceManager").value = "";
+          }
+        }
+      }
+    } catch (e) {
+      setMessage(e);
+      disappearing();
+      document.getElementById("addResourceManager").value = "";
+    }
+  };
+
+  const removeManager = (email) => {
+    let managers = [...resource.managedBy];
+    managers = managers.filter((manager) => manager.email == email);
+    setResource({ ...resource, managedBy: managers });
+  };
 
   return (
     <div className="bg-slate-400 h-full w-full text-black m-auto pt-40">
+      <button
+        onClick={() => {
+          console.log(resource);
+        }}
+      >
+        print
+      </button>
       <form onSubmit={createResource}>
         <p className=" text-8xl col-span-3 text-center mb-20 font-extrabold">
           Create Resource
@@ -190,7 +257,7 @@ const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
                 required
               />
               {errors && errors.name && errors.name.length > 0 && (
-                <p className="error">{errors.name}</p>
+                <p className="text-red-600">{errors.name}</p>
               )}
             </div>
 
@@ -216,7 +283,7 @@ const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
               {errors &&
                 errors.description &&
                 errors.description.length > 0 && (
-                  <p className="error">{errors.description}</p>
+                  <p className="text-red-600">{errors.description}</p>
                 )}
             </div>
 
@@ -235,7 +302,7 @@ const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
                 required
               />
               {errors && errors.type && errors.type.length > 0 && (
-                <p className="error">{errors.type}</p>
+                <p className="text-red-600">{errors.type}</p>
               )}
             </div>
             <label>Tags</label>
@@ -246,7 +313,7 @@ const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
             <div>
               <TimeSelect setSchedule={setSchedule} />
               {errors && errors.schedule && errors.schedule.length > 0 && (
-                <p className="error">{errors.schedule}</p>
+                <p className="text-red-600">{errors.schedule}</p>
               )}
             </div>
             <p className="text-bolder text-xl font-extrabold ">
@@ -276,11 +343,12 @@ const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
                     }}
                     min="1"
                     max="300"
+                    required
                   />
                   {errors &&
                     errors.reservationLength &&
                     errors.reservationLength.length > 0 && (
-                      <p className="error">{errors.reservationLength}</p>
+                      <p className="text-red-600">{errors.reservationLength}</p>
                     )}
                 </span>
               </span>
@@ -303,11 +371,12 @@ const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
                         reservationGap: e.target.value,
                       });
                     }}
+                    required
                   />
                   {errors &&
                     errors.reservationGap &&
                     errors.reservationGap.length > 0 && (
-                      <p className="error">{errors.reservationGap}</p>
+                      <p className="text-red-600">{errors.reservationGap}</p>
                     )}
                 </span>
               </span>
@@ -328,7 +397,7 @@ const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
                   }}
                 />
                 {errors && errors.capacity && errors.capacity.length > 0 && (
-                  <p className="error">{errors.capacity}</p>
+                  <p className="text-red-600">{errors.capacity}</p>
                 )}
               </span>
               <span className="text-center">
@@ -387,7 +456,7 @@ const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
                 placeholder="Rules for using the resource"
               ></textarea>
               {errors && errors.rules && errors.rules.length > 0 && (
-                <p className="error">{errors.rules}</p>
+                <p className="text-red-600">{errors.rules}</p>
               )}
             </span>
 
@@ -411,7 +480,7 @@ const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
                     }}
                   />
                   {errors && errors.email && errors.email.length > 0 && (
-                    <p className="error">{errors.email}</p>
+                    <p className="text-red-600">{errors.email}</p>
                   )}
                 </span>
               </span>
@@ -432,7 +501,7 @@ const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
                     }}
                   />
                   {errors && errors.contact && errors.contact.length > 0 && (
-                    <p className="error">{errors.contact}</p>
+                    <p className="text-red-600">{errors.contact}</p>
                   )}
                 </span>
               </span>
@@ -454,7 +523,7 @@ const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
                     }}
                   />
                   {errors && errors.address1 && errors.address1.length > 0 && (
-                    <p className="error">{errors.address1}</p>
+                    <p className="text-red-600">{errors.address1}</p>
                   )}
                 </span>
               </span>
@@ -475,7 +544,7 @@ const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
                     }}
                   />
                   {errors && errors.address2 && errors.address2.length > 0 && (
-                    <p className="error">{errors.address2}</p>
+                    <p className="text-red-600">{errors.address2}</p>
                   )}
                 </span>
               </span>
@@ -497,13 +566,13 @@ const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
                     }}
                   />
                   {errors && errors.address2 && errors.address2.length > 0 && (
-                    <p className="error">{errors.address2}</p>
+                    <p className="text-red-600">{errors.address2}</p>
                   )}
                 </span>
               </span>
               <span>
                 <label htmlFor="createResourceState" className="block">
-                  Select State
+                  State
                 </label>
                 <select
                   id="createResourceState"
@@ -512,16 +581,57 @@ const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
                     setResource({ ...resource, state: e.target.value });
                   }}
                   required
-                  defaultValue={states[0]}
                 >
+                  <option value="">Select A State</option>
                   {states.map((x, y) => (
-                    <option value={x} key={`state_${x}`} disabled={y == 0}>
+                    <option value={x} key={`state_${x}`}>
                       {x}
                     </option>
                   ))}
                 </select>
-                <p>{resource.state}</p>
+                {errors && errors.state && errors.state.length > 0 && (
+                  <p className="text-red-600">{errors.state}</p>
+                )}
               </span>
+            </div>
+            <label htmlFor="addResourceManager">Add Manager</label>
+            <div>
+              <div>
+                <input
+                  id="addResourceManager"
+                  placeholder="Enter email of the user to add manager"
+                  type="email"
+                />
+                <button type="button" onClick={() => addManager()}>
+                  Add Manager
+                </button>
+              </div>
+              {errors && errors.managedBy && errors.managedBy.length > 0 && (
+                <p>{errors.managedBy}</p>
+              )}
+              {message && message.length > 0 && <p>{message}</p>}
+              {resource.managedBy && resource.managedBy.length > 0 && (
+                <div className="grid grid-cols-2 my-5 ">
+                  {console.log(resource.managedBy)}
+                  {resource.managedBy.map((manager) => (
+                    <div>
+                      <span>
+                        Name : {`${manager.firstName} ${manager.lastName}`}
+                      </span>
+                      <span>Email : {manager.email}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          removeManager(manager.email);
+                        }}
+                      >
+                        {" "}
+                        Remove Manager
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <button
               type="submit"
@@ -534,14 +644,6 @@ const CreateResource = ({ submitResource, organisationId, getFireBaseID }) => {
           <h1>loading</h1>
         )}
       </form>
-      <button
-        onClick={() => {
-          console.log(resource);
-          uploadImages();
-        }}
-      >
-        print
-      </button>
     </div>
   );
 };

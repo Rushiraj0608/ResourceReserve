@@ -1,5 +1,6 @@
 "use client";
-import "./EditOrganisation.css";
+
+/**need to add email js part */
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -42,10 +43,14 @@ const EditOrganisation = (props) => {
           "there has been changes in the admins or managers please click save to save the changes",
       });
       let user = await props.getUser(adminEmail);
-      let admins = organisation.admins;
-      admins = [...admins, user.data];
-      setOrganisation({ ...organisation, admins });
-      document.getElementById("editOrganisationAdmins").value = "";
+      if (!user.validity) {
+        throw { data: user.error };
+      } else {
+        let admins = organisation.admins;
+        admins = [...admins, user.data];
+        setOrganisation({ ...organisation, admins });
+        document.getElementById("editOrganisationAdmins").value = "";
+      }
     } catch (e) {
       if ((e.type = "message")) {
         setMessage(e.data);
@@ -91,15 +96,19 @@ const EditOrganisation = (props) => {
     }
   };
   return (
-    <div className="EditOrganisation">
-      <form onSubmit={editOrganisation}>
+    <div className="bg-white h-screen w-full text-black grid grid-rows-4 justify-items-center">
+      <p className="text-8xl font-extrabold text-center my-10  h-fit">
+        EDIT ORGANISATION
+      </p>
+      <form onSubmit={editOrganisation} className="w-full">
         {errors && errors.general && errors.general.length > 0 && (
           <p>{errors.general}</p>
         )}
-        <div className="grid grid-cols-2 bg-amber-500 text-black">
+        <div className="px-5 py-10 grid grid-cols-3 gap-10 m-auto bg-white w-11/12 [&>*:nth-child(odd)]:text-right [&>*:nth-child(even)]:col-span-2 shadow-[0_20px_40px_rgba(0,0,0,0.3)] text-black">
           <label htmlFor="editOrganisationName">Organisation Name</label>
           <div>
             <input
+              className=" border-b-4 border-black w-8/12"
               type="text"
               id="editOrganisationName"
               name="editOrganisationName"
@@ -116,6 +125,7 @@ const EditOrganisation = (props) => {
           <label htmlFor="editOrganisationEmail">Organisation Email</label>
           <div>
             <input
+              className=" border-b-4 border-black w-8/12"
               type="text"
               id="editOrganisationEmail"
               name="editOrganisationEmail"
@@ -132,6 +142,7 @@ const EditOrganisation = (props) => {
           <label htmlFor="editOrganisationContact">Organisation Contact</label>
           <div>
             <input
+              className=" border-b-4 border-black w-8/12"
               type="text"
               id="editOrganisationContact"
               name="editOrganisationContact"
@@ -145,19 +156,23 @@ const EditOrganisation = (props) => {
               }}
             />
           </div>
-          <label htmlFor="resources">Resources</label>
+          <label>Resources</label>
           <div>
-            <p>
+            <p className="px-4 py-2  bg-green-500 w-fit rounded-xl">
               <Link href={`/resource/${organisation.id}/create`}>
                 Create Resource
               </Link>
             </p>
-            <div className="bg-red-400 grid grid-cols-2 p-5">
+            <div className=" grid grid-cols-2 p-5 gap-x-2 gap-y-1 my-5">
               {organisation.resources && organisation.resources.length > 0 ? (
                 <>
                   {organisation.resources.map((resource, ind) => (
-                    <div key={`organisation_resource_${ind}`}>
+                    <div
+                      key={`organisation_resource_${ind}`}
+                      className="shadow-[0_20px_20px_rgba(0,0,0,0.09)] p-2"
+                    >
                       <p>
+                        Resource Name :
                         <Link
                           href={`/resource/${organisation.id}/${resource.resourceId}`}
                         >
@@ -171,6 +186,7 @@ const EditOrganisation = (props) => {
                           let path = `/resource/${organisation.id}/${resource.resourceId}/edit`;
                           router.push(path);
                         }}
+                        className="px-4 py-2 bg-green-500 w-fit rounded-xl"
                       >
                         Edit Resource
                       </button>
@@ -188,16 +204,21 @@ const EditOrganisation = (props) => {
             </div>
           </div>
 
-          <label htmlFor="editOrganisation">Admin</label>
-          <div className="bg-red-400">
+          <label htmlFor="editOrganisationAdmins">Admin</label>
+          <div>
             <div>
               <input
+                className=" border-b-4 border-black w-8/12"
                 type="email"
                 id="editOrganisationAdmins"
                 name="editOrganisationAdmins"
                 placeholder="Add Admin's Email Address"
               />
-              <button type="button" onClick={addAdmin}>
+              <button
+                type="button"
+                onClick={addAdmin}
+                className="px-4 py-2  bg-green-500 w-fit rounded-xl"
+              >
                 Add Admin
               </button>
             </div>
@@ -205,19 +226,27 @@ const EditOrganisation = (props) => {
             {errors && errors.admins && errors.admins.length > 0 && (
               <p>{errors.admins}</p>
             )}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 my-5">
               {organisation.admins && organisation.admins.length > 0 && (
                 <>
                   {organisation.admins.map((admin, index) => (
-                    <div key={`organisationEditAdmin_${index}`} className="p-5">
+                    <div
+                      key={`organisationEditAdmin_${index}`}
+                      className="shadow-[0_20px_20px_rgba(0,0,0,0.09)] p-1"
+                    >
                       <p>Name : {`${admin.firstName} ${admin.lastName}`}</p>
                       <p>Email : {admin.email}</p>
                       <button
                         type="button"
-                        disabled={admin.email == organisation.createdBy.email}
+                        disabled={
+                          admin.email == organisation.createdBy.email ||
+                          organisation.admins.length < 2
+                        }
                         onClick={() => {
+                          console.log("removing admins");
                           removeAdmin(admin.email);
                         }}
+                        className="px-4 py-2  bg-red-500 w-fit rounded-xl"
                       >
                         Remove Admin
                       </button>
@@ -227,14 +256,14 @@ const EditOrganisation = (props) => {
               )}
             </div>
           </div>
-          <label htmlFor="editOrganisation">Created By </label>
+          <label>Created By </label>
           <div>
             <p>
               {`${organisation?.createdBy?.firstName} ${organisation?.createdBy?.lastName}`}
             </p>
           </div>
           <label>Managers</label>
-          <div className="bg-red-400">
+          <div>
             {organisation.managers && organisation.managers.length > 0 ? (
               <>
                 {organisation.managers.map((manager, index) => (
@@ -253,11 +282,13 @@ const EditOrganisation = (props) => {
                 ))}
               </>
             ) : (
-              <p>organisation does not have any manaagers to display</p>
+              <p>Organisation does not have any manaagers to display</p>
             )}
           </div>
+          <button className="w-fit col-span-full px-5 py-3 justify-self-center bg-green-500 rounded-lg text-center">
+            Edit Organisation
+          </button>
         </div>
-        <button>Edit Organisation</button>
       </form>
     </div>
   );

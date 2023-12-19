@@ -1,3 +1,4 @@
+//this one not neef
 import {
   doc,
   getDocs,
@@ -29,7 +30,7 @@ const getUser = async (email) => {
   let user = {};
   q.forEach((x) => {
     user = x.data();
-    user._id = x.id;
+    user.id = x.id;
   });
 
   if (Object.keys(user).length > 0) {

@@ -4,50 +4,6 @@ import { getDocs, getFirestore } from "firebase/firestore";
 import { collection, doc, getDoc, setDoc } from "firebase/firestore";
 import { query, where } from "firebase/firestore";
 
-// TODO: Replace the following with your app's Firebase project configuration
-// See: https://support.google.com/firebase/answer/7015592
-const firebaseConfig = {
-  apiKey: "AIzaSyCko1_NwWIIFD5bwSd9M2MdVFgyuY8lNWU",
-  authDomain: "resourcereserve-b4329.firebaseapp.com",
-  databaseURL: "https://resourcereserve-b4329-default-rtdb.firebaseio.com",
-  projectId: "resourcereserve-b4329",
-  storageBucket: "resourcereserve-b4329.appspot.com",
-  messagingSenderId: "254105232522",
-  appId: "1:254105232522:web:d61038e0bb5e2b07933973",
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
-// Initialize Cloud Firestore and get a reference to the service
-const db = getFirestore(app);
-let collection1 = collection(db, "users");
-let querySnapshot = await getDocs(collection1);
-
-// querySnapshot.forEach((doc) => {
-//   // doc.data() is never undefined for query doc snapshots
-//   console.log(doc.id, " => ", doc.data());
-// });
-// await setDoc(doc(db, "users", "newUsers"), {
-//   name: "Los Angeles",
-//   state: "CA",
-//   country: "USA",
-// });
-
-const q = query(
-  collection(db, "users"),
-  where("email", "==", "bhanuroyal.koppolu@gmail.com")
-);
-
-querySnapshot = await getDocs(q);
-
-console.log(Object.keys(querySnapshot));
-querySnapshot.forEach((x) => {
-  console.log(x.id);
-  console.log(Object.keys(x));
-});
-console.log("setting");
-
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">

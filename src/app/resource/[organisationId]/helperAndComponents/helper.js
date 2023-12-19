@@ -113,8 +113,9 @@ const createResourceCheck = (resource) => {
     "tags",
     "organisationId",
     "state",
+    "managedBy",
   ];
-  let state = resource.state;
+
   if (resource.description)
     resource.description = rulesCheck(resource.description, "description");
   if (resource.rules) resource.rules = rulesCheck(resource.rules, "rules");
@@ -139,6 +140,19 @@ const createResourceCheck = (resource) => {
       errors.schedule = "the resource must be available atleast for two days";
     }
   }
+  if (resource.state.length < 2) {
+    validity = 0;
+    errors.state = "select a state";
+  }
+  if (resource.managedBy.length < 1) {
+    validity = 0;
+    errors.managedBy = "there must be atleast one manager to add the resource";
+  }
+  if (resource.tags.length < 1) {
+    validity = 0;
+    errors.tags = "there must be atleast one tag to  resource";
+  }
+
   for (let key in resource) {
     if (exclude.includes(key)) {
       resultResource[key] = resource[key];
@@ -149,7 +163,8 @@ const createResourceCheck = (resource) => {
       errors[key] = resource[key].data;
     }
   }
-  resource.state = state;
+  resultResource.state = resource.state;
+
   return { validity, resource: resultResource, errors };
 };
 
@@ -164,7 +179,9 @@ const formDataCheck = (resource) => {
     "tags",
     "organisationId",
     "state",
+    "managedBy",
   ];
+
   resource.description = rulesCheck(resource.description, "description");
   resource.rules = rulesCheck(resource.rules, "rules");
   resource.name = nameCheck(resource.name, "Name of the Resource");
@@ -175,10 +192,24 @@ const formDataCheck = (resource) => {
   resource.contact = contactCheck(resource.contact);
   resource.email = emailCheck(resource.email);
   resource.capacity = capacityCheck(resource.capacity);
+  if (resource.state.length < 2) {
+    validity = 0;
+    errors.state = "select a state";
+  }
+  if (resource.managedBy.length < 1) {
+    validity = 0;
+    errors.managedBy = "there must be atleast one manager to add the resource";
+  }
+  if (resource.tags.length < 1) {
+    validity = 0;
+    errors.tags = "there must be atleast one tag";
+  }
+
   if (resource.reservationGap)
     resource.reservationGap = numberCheck(resource.reservationGap);
   if (resource.reservationLength)
     resource.reservationLength = numberCheck(resource.reservationLength);
+
   for (let key in resource) {
     if (exclude.includes(key)) {
       resultResource[key] = resource[key];
@@ -189,7 +220,7 @@ const formDataCheck = (resource) => {
       errors[key] = resource[key].data;
     }
   }
-
+  console.log(resultResource, "right before returning");
   return { validity, resource: resultResource, errors };
 };
 
@@ -230,7 +261,12 @@ const createOrganisationCheck = (organisation) => {
       checkedOrganisation.contact = data;
     }
   }
-
+  if (organisation.admins.length < 1) {
+    errors = {
+      ...errors,
+      admins: "There must be atleast one admin to create a resource",
+    };
+  }
   if (organisation.admins.length > 0) {
     organisation.admins.map((admin) => {
       if (admin.email == organisation.email) {

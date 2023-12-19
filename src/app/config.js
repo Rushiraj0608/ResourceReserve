@@ -4,8 +4,8 @@ import { getFirestore } from "firebase/firestore";
 import AWS from "aws-sdk";
 AWS.config.update({
   credentials: new AWS.Credentials(
-    "AKIAUDTZ2EG4NN6OZRFT",
-    "TkIdbjHsytTyp+SoURIS0GkFKwCuTPMbTHNVOGR7"
+    NEXT_PUBLIC_AMAZONS3_ACCESSKEY_NEW2,
+    NEXT_PUBLIC_AMAZONS3_SECRETACCESSKEY_NEW2
   ),
   region: "us-east-1",
 });
