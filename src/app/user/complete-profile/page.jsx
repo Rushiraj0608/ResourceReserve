@@ -31,7 +31,7 @@ export default function CompleteProfile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await updateUserData({ ...formData, isProfileComplete: true });
+    await updateUserData({ ...formData, isProfileComplete: true, userType: "user" });
     router.push("/user/profile");
   };
 
