@@ -40,3 +40,6 @@ next-env.d.ts
 
 # package-lock.json
 package-lock.json
+
+# service account json file
+service-account.json
