@@ -11,20 +11,11 @@ import {
   query,
   where,
   updateDoc,
+  deleteField,
 } from "firebase/firestore";
-import { redirect } from "next/navigation";
 import { db } from "@/lib/firebase";
 import EditResource from "./EditResource";
-import { s3 } from "../../../../config";
-
-let checkArray = (array, newArray) => {
-  newArray.map((newItem) => {
-    if (!array.includes(newItem)) {
-      return true;
-    }
-  });
-  return false;
-};
+import { s3 } from "../../../../../lib/config";
 
 async function getData(params) {
   "use server";
@@ -90,25 +81,33 @@ let updateResource = async (newData, params) => {
   );
   let docRef = doc(db, "resources", params.resourceId);
   await setDoc(docRef, newData);
-  await updateUsers(oldResource.managedBy, newData.managedBy);
+  await updateUsers(oldResource.managedBy, newData.managedBy, params);
   await updateOrganisation(oldResource, newData, params);
   return "nothing to update";
 };
 
-let updateUsers = async (old, newManagers) => {
+let updateUsers = async (old, newManagers, params) => {
   // let old = oldManagers.reduce((acc, current) => [...acc, current.id], []);
   console.log("\n\n\n\n", old, "\n", newManagers, "\n\n\n\n");
 
   newManagers.map(async (manager) => {
     if (!old.includes(manager)) {
       console.log("updating to mangaer this manager", manager);
-      await updateDoc(doc(db, "users", manager), { userType: "manager" });
+      await updateDoc(doc(db, "users", manager), {
+        userType: "manager",
+        organisationId: params.organisationId,
+        resourceId: params.resourceId,
+      });
     }
   });
   old.map(async (manager) => {
     if (!newManagers.includes(manager)) {
       console.log("removing this manager", manager);
-      await updateDoc(doc(db, "users", manager), { userType: "user" });
+      await updateDoc(doc(db, "users", manager), {
+        userType: "user",
+        organisationId: deleteField(),
+        resourceId: deleteField(),
+      });
     }
   });
 };

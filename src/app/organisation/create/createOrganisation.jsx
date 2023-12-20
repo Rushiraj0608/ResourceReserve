@@ -3,29 +3,26 @@ import {
   createOrganisationCheck,
   emailCheck,
 } from "../../resource/[organisationId]/helperAndComponents/helper";
+import Loading from "@/app/components/ui/Loading";
 import { useRouter } from "next/navigation";
 import { NextResponse } from "next/server";
 import { useState, useEffect } from "react";
-import emailjs from "@emailjs/browser";
+
 import { getUserData } from "@/app/actions/user";
+import sendEmail from "@/lib/email";
+import { toast } from "react-toastify";
+
 const CreateOrganisation = (props) => {
   const router = useRouter();
   let [user, setUser] = useState({});
   let [loading, setLoading] = useState(1);
-  // if (!userData) {
-  //   return NextResponse.redirect("/signin");
-  // } else {
-  //   if (!userData.userType || userData.userType != "superAdmin") {
-  //     return NextResponse.redirect("/signin");
-  //   }
-  // }
+
   useEffect(() => {
     async function fetchData() {
       const userData = await getUserData();
       setUser(userData);
       setLoading(0);
     }
-
     fetchData();
   }, []);
 
@@ -72,10 +69,8 @@ const CreateOrganisation = (props) => {
       console.log(create);
       if (create.validity) {
         setErrors({ ...errors, general: "" });
-        setMessage("Organisation has been created");
-        setTimeout(() => {
-          router.push(`/dashboard/adminOrgs/${create.doc}`);
-        }, 5000);
+        toast.success("Organisation has been created");
+        router.push(`/dashboard/adminOrgs/${create.doc}`);
       } else {
         setErrors({
           ...errors,
@@ -146,38 +141,17 @@ const CreateOrganisation = (props) => {
     manager = await props.checkManager(manager);
 
     if (!manager.validity && manager.error == "noUser") {
-      console.log("trying sending mails");
-      try {
-        let response = await emailjs.send(
-          process.env.NEXT_PUBLIC_EMAILJS_SERVICEID,
-          process.env.NEXT_PUBLIC_EMAILJS_TEMPLATEID,
-          {
-            reply_to: manager.data,
-            organisation_name: "neworganisation",
-            signup: "http://localhost:3000/auth/signup",
-            role: "admin",
-          },
-          process.env.NEXT_PUBLIC_EMAILJS_PUBLICKEY
-        );
+      let data = await sendEmail({
+        email: manager.data,
+        role: "manager",
+        name: user.firstName || user.name,
+        organisationName: "organisation name",
+      });
 
-        if (response.status == 200) {
-          return {
-            data: `the user with email id ${manager.data} doesnt have an account we sent an email to create an account`,
-            validity: 0,
-          };
-        } else {
-          return {
-            data: `the user with email id ${manager.data} doesnt have an account we tried to send an email to create an account`,
-            validity: 0,
-          };
-        }
-      } catch (e) {
-        setMessage(
-          `the user with email id ${manager.data} doesnt have an account we tried to send an email to create an account`
-        );
-        disappearing();
-        document.getElementById("createOrganisationAdmins").value = "";
-      }
+      return {
+        validity: 0,
+        data,
+      };
     } else if (!manager.validity) {
       setMessage(manager.error);
       disappearing();
@@ -191,14 +165,14 @@ const CreateOrganisation = (props) => {
   };
   if (!loading) {
     if (!user) {
-      setTimeout(() => {
-        router.push("/");
-      }, 10000);
+      toast.warn("User not logged in");
+      router.push("/");
+
       return <h1>Login Credentials Missing</h1>;
     } else if ((user && !user.userType) || user.userType != "superAdmin") {
-      setTimeout(() => {
-        router.push("/");
-      }, 10000);
+      toast.error("User is not authorized to use this page");
+      router.push("/");
+
       return <h1>Not authorized to use this page</h1>;
     } else {
       return (
@@ -206,6 +180,7 @@ const CreateOrganisation = (props) => {
           <p className="text-8xl font-extrabold text-center my-10  h-fit">
             CREATE ORGANISATION
           </p>
+
           <form
             onSubmit={(e) => {
               createOrgCheck(e);
@@ -342,7 +317,7 @@ const CreateOrganisation = (props) => {
       );
     }
   } else {
-    return <h1>Loading</h1>;
+    return <Loading />;
   }
 };
 

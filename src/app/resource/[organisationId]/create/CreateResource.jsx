@@ -6,10 +6,12 @@ import TimeSelect from "../helperAndComponents/TimeSelect";
 import Tags from "../helperAndComponents/Tags";
 import AddImages from "../helperAndComponents/addImages";
 import * as formdata from "../helperAndComponents/helper";
-import { s3 } from "../../../config";
+import { s3 } from "../../../../lib/config";
 import { getCountFromServer } from "firebase/firestore";
 import { getUserData } from "@/app/actions/user";
-
+import Loading from "@/app/components/ui/Loading";
+import sendEmail from "@/lib/email";
+import { toast } from "react-toastify";
 const CreateResource = ({
   submitResource,
   organisationId,
@@ -218,8 +220,16 @@ const CreateResource = ({
           });
           document.getElementById("addResourceManager").value = "";
         } else {
-          if (getData.error == "noUser") console.log("sendEmail");
-          else {
+          if (getData.error == "noUser") {
+            let data = await sendEmail({
+              email: getData.data,
+              role: "manager",
+              name: user.firstName || user.name,
+              organisationName: "organisation name",
+            });
+            setMessage(data);
+            disappearing();
+          } else {
             setMessage(getData.error);
             disappearing();
             document.getElementById("addResourceManager").value = "";
@@ -251,28 +261,21 @@ const CreateResource = ({
 
   if (!loading) {
     if (!user) {
-      setTimeout(() => {
-        router.push("/");
-      }, 10000);
+      toast.warn("User is not logged in");
+      router.push("/");
+
       return <h1>Login Credentials Missing</h1>;
     } else if (
       user &&
       (!user.userType || !allowedUsers.includes(user.userType))
     ) {
-      setTimeout(() => {
-        router.push("/");
-      }, 10000);
+      toast.warn("User is not allowed to access this route");
+      router.push("/");
+
       return <h1>Not authorized to use this page</h1>;
     } else {
       return (
         <div className="bg-slate-400 h-full w-full text-black m-auto pt-40">
-          <button
-            onClick={() => {
-              console.log(resource);
-            }}
-          >
-            print
-          </button>
           <form onSubmit={createResource}>
             <p className=" text-8xl col-span-3 text-center mb-20 font-extrabold">
               Create Resource
@@ -694,7 +697,7 @@ const CreateResource = ({
       );
     }
   } else {
-    return <h1>Loading</h1>;
+    return <Loading />;
   }
 };
 export default CreateResource;

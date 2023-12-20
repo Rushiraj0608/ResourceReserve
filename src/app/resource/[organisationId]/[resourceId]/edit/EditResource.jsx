@@ -6,9 +6,15 @@ import Tags from "../../helperAndComponents/Tags";
 import AddImages from "../../helperAndComponents/addImages";
 import { formDataCheck } from "../../helperAndComponents/helper";
 import AddManager from "../../helperAndComponents/AddManagers";
-import emailjs from "@emailjs/browser";
-import { s3 } from "../../../../config";
+
+import { s3 } from "../../../../../lib/config";
 import { getUserData } from "@/app/actions/user";
+import Loading from "@/app/components/ui/Loading";
+import sendEmail from "@/lib/email";
+import { toast } from "react-toastify";
+import { redirect } from "next/dist/server/api-utils";
+import { useRouter } from "next/navigation";
+
 const EditResource = ({ existingResource, params, setData, checkManager }) => {
   // console.log(existingResource);
   let allowedUsers = ["manager", "admin", "superAdmin"];
@@ -16,6 +22,7 @@ const EditResource = ({ existingResource, params, setData, checkManager }) => {
     userType: "admin",
     organisation: "someRandomOrganisation",
   };
+  let router = useRouter();
   let [resource, setResource] = useState(existingResource);
   let [errors, setErrors] = useState({});
   let [user, setUser] = useState({});
@@ -143,7 +150,13 @@ const EditResource = ({ existingResource, params, setData, checkManager }) => {
       console.log(images);
       updateResource.images = [...images];
       console.log(updateResource, existingResource);
-      console.log(await setData(result.resource, params));
+      let edit = await setData(result.resource, params);
+      if (edit.validity) {
+        toast.success("Resource has been edited");
+        router.push(`/dashboard/managerResources/${params.resourceId}`);
+      } else {
+        toast.error("Error while editing resource");
+      }
     }
   };
   const setTags = (tags) => {
@@ -170,30 +183,17 @@ const EditResource = ({ existingResource, params, setData, checkManager }) => {
     manager = await checkManager(manager);
     console.log(manager);
     if (!manager.validity && manager.error == "noUser") {
-      let response = await emailjs.send(
-        process.env.NEXT_PUBLIC_EMAILJS_SERVICEID,
-        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATEID,
-        {
-          reply_to: manager.data,
-          organisation_name: "neworganisation",
-          signup: "http://localhost:3000/auth/signup",
-          role: "admin",
-        },
-        process.env.NEXT_PUBLIC_EMAILJS_PUBLICKEY
-      );
+      let data = await sendEmail({
+        email: manager.data,
+        role: "manager",
+        name: user.firstName || user.name,
+        organisationName: "organisation name",
+      });
 
-      if (response.status == 200) {
-        console.log("this is clicking");
-        return {
-          data: `the user with email id ${manager.data} doesnt have an account we sent an email to create an account`,
-          validity: 0,
-        };
-      } else {
-        return {
-          data: `the user with email id ${manager.data} doesnt have an account we tried to send an email to create an account`,
-          validity: 0,
-        };
-      }
+      return {
+        validity: 0,
+        data,
+      };
     } else if (!manager.validity) {
       return manager;
     } else {
@@ -219,17 +219,17 @@ const EditResource = ({ existingResource, params, setData, checkManager }) => {
 
   if (!loading) {
     if (!user) {
-      setTimeout(() => {
-        router.push("/");
-      }, 10000);
+      toast.warn("User is not logged in");
+      router.push("/");
+
       return <h1>Login Credentials Missing</h1>;
     } else if (
       user &&
       (!user.userType || !allowedUsers.includes(user.userType))
     ) {
-      setTimeout(() => {
-        router.push("/");
-      }, 10000);
+      toast.error("User is not allowed to access this route");
+      router.push("/");
+
       return <h1>Not authorized to use this page</h1>;
     } else {
       return (
@@ -569,7 +569,7 @@ const EditResource = ({ existingResource, params, setData, checkManager }) => {
       );
     }
   } else {
-    return <h1>Loading</h1>;
+    return <Loading />;
   }
 };
 export default EditResource;

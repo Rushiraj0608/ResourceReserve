@@ -14,13 +14,6 @@ import { collection } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { redirect } from "next/navigation";
 
-let currentUser = {
-  id: "Lb7DsK6GgzOQTQ0UoJE5",
-  email: "user@superAdmin.com",
-  userType: "superAdmin",
-  firstName: "userFirstName",
-  lastName: "userLastName",
-};
 const checkPossibility = async (organisationId) => {
   // this is a function if the uploader is a admin in that resource or not
   try {
@@ -57,7 +50,7 @@ async function submitResource(data, resourceId) {
     );
     data.managedBy = [...resourceManagers];
     await setDoc(doc(db, "resources", resourceId), data);
-    await updateUser(data.managedBy);
+    await updateUser(data.managedBy,resourceId,data.organisationId);
     // by default the creator of this resource is added to the resource
     organisationData.resources = [...organisationData.resources, resourceId];
 
@@ -79,9 +72,9 @@ async function submitResource(data, resourceId) {
   }
 }
 
-const updateUser = async (managedBy) => {
+const updateUser = async (managedBy,resourceId,organisationId) => {
   managedBy.map(async (manager) => {
-    await updateDoc(doc(db, "users", manager), { userType: "manager" });
+    await updateDoc(doc(db, "users", manager), { userType: "manager",resourceId,organisationId });
   });
 };
 

@@ -14,17 +14,10 @@ import {
   query,
   where,
   updateDoc,
+  deleteField,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { redirect } from "next/navigation";
-
-let currentUser = {
-  id: "Lb7DsK6GgzOQTQ0UoJE5",
-  email: "user@superAdmin.com",
-  userType: "superAdmin",
-  firstName: "userFirstName",
-  lastName: "userLastName",
-};
 
 const getOrganisation = async (orgId) => {
   "use server";
@@ -107,26 +100,30 @@ let getUser = async (adminEmail) => {
     }
   } else {
     return {
-      error: "no user registered with this email",
+      error: "noUser",
       data: adminEmail,
       validity: 0,
     };
   }
 };
 
-const updateAdmins = async (oldAdmins, newAdmins) => {
-  console.log("updating users");
-  console.log(oldAdmins, "\n\n\n\n\n\n\n", newAdmins, "\n\n\n\n\n");
+const updateAdmins = async (oldAdmins, newAdmins, organisationId) => {
   try {
     newAdmins.map(async (admin) => {
       if (!oldAdmins.includes(admin)) {
-        await updateDoc(doc(db, "users", admin), { userType: "admin" });
+        await updateDoc(doc(db, "users", admin), {
+          userType: "admin",
+          organisationId,
+        });
       }
     });
 
     oldAdmins.map(async (admin) => {
       if (!newAdmins.includes(admin))
-        await updateDoc(doc(db, "users", admin), { userType: "user" });
+        await updateDoc(doc(db, "users", admin), {
+          userType: "user",
+          organisationId: deleteField(),
+        });
     });
   } catch (e) {
     console.log("error here");
@@ -147,23 +144,27 @@ const getOrganisationDoc = async (orgId) => {
 const editOrganisation = async (newOrganisation, id) => {
   "use server";
   // console.log("editing", organisation, id);
-  newOrganisation.updatedAt = new Date();
-  let oldOrganisation = await getOrganisationDoc(id);
-  newOrganisation.admins = newOrganisation.admins.reduce((val, admin) => {
-    return [...val, admin.id];
-  }, []);
-  console.log(newOrganisation);
-  //loop  through new organisation and remove or add users accordingly
+  try {
+    newOrganisation.updatedAt = new Date();
+    let oldOrganisation = await getOrganisationDoc(id);
+    newOrganisation.admins = newOrganisation.admins.reduce((val, admin) => {
+      return [...val, admin.id];
+    }, []);
+    console.log(newOrganisation);
+    //loop  through new organisation and remove or add users accordingly
 
-  console.log("\nupating\n", id);
+    console.log("\nupating\n", id);
 
-  await updateAdmins(oldOrganisation.admins, newOrganisation.admins);
+    await updateAdmins(oldOrganisation.admins, newOrganisation.admins, id);
 
-  await updateDoc(doc(db, "organisations", id), newOrganisation, {
-    merge: true,
-  });
+    await updateDoc(doc(db, "organisations", id), newOrganisation, {
+      merge: true,
+    });
 
-  return { validity: 1 };
+    return { validity: 1, data: "Resource has been edited" };
+  } catch (e) {
+    return { validity: 0, error: "Error while editing the resources" };
+  }
   //need to add error
 };
 export default async function Page({ params }) {

@@ -1,8 +1,10 @@
-import { Inter } from 'next/font/google'
-import './globals.css'
-import Navbar from '@/app/components/ui/Navbar'
-import { auth } from "@/lib/auth"
-import { SessionProvider } from 'next-auth/react'
+import { Inter } from "next/font/google";
+import "./globals.css";
+import Navbar from "@/app/components/ui/Navbar";
+import { auth } from "@/lib/auth";
+import { SessionProvider } from "next-auth/react";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -12,13 +14,13 @@ export const metadata = {
 };
 
 export default async function RootLayout({ children }) {
-
   const session = await auth();
   return (
     <html lang="en">
       <body className={inter.className}>
         <SessionProvider session={session}>
           <Navbar />
+          <ToastContainer />
           {children}
         </SessionProvider>
       </body>

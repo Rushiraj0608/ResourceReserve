@@ -6,6 +6,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { editOrganisationCheck } from "../../../resource/[organisationId]/helperAndComponents/helper";
 import { getUserData } from "@/app/actions/user";
+import Loading from "@/app/components/ui/Loading";
+import sendEmail from "@/lib/email";
+import { toast } from "react-toastify";
+
 const EditOrganisation = (props) => {
   // console.log(props.organisation);
   const router = useRouter();
@@ -45,12 +49,26 @@ const EditOrganisation = (props) => {
         general:
           "there has been changes in the admins or managers please click save to save the changes",
       });
-      let user = await props.getUser(adminEmail);
-      if (!user.validity) {
-        throw { data: user.error };
+      let admin = await props.getUser(adminEmail);
+      console.log;
+      if (!admin.validity) {
+        if (admin.error == "noUser") {
+          let data = await sendEmail({
+            email: admin.data,
+            role: "admin",
+            name: user.firstName || user.name,
+            organisationName: "organisation name",
+          });
+
+          throw {
+            data,
+          };
+        } else {
+          throw { data: admin.error };
+        }
       } else {
         let admins = organisation.admins;
-        admins = [...admins, user.data];
+        admins = [...admins, admin.data];
         setOrganisation({ ...organisation, admins });
         document.getElementById("editOrganisationAdmins").value = "";
       }
@@ -92,11 +110,11 @@ const EditOrganisation = (props) => {
 
       let edit = await props.editOrganisation(data, organisation.id);
       if (edit.validity) {
-        setMessage("Organisation has been edited");
-        setTimeout(() => {
-          router.push(`/organisation/${organisation.id}`);
-        }, 1000);
+        toast.success("Organisation has been edited");
+
+        router.push(`/organisation/${organisation.id}`);
       } else {
+        toast.error("Error while editing the organisation");
         setErrors({ ...errors, general: create.data });
       }
     }
@@ -113,17 +131,16 @@ const EditOrganisation = (props) => {
   }, []);
   if (!loading) {
     if (!user) {
-      setTimeout(() => {
-        router.push("/");
-      }, 10000);
+      toast.warn("User is not logged in");
+      router.push("/");
       return <h1>Login Credentials Missing</h1>;
     } else if (
       user &&
       (!user.userType || !allowedUsers.includes(user.userType))
     ) {
-      setTimeout(() => {
-        router.push("/");
-      }, 10000);
+      toast.error("User is not authorized to access this page");
+      router.push("/");
+
       return <h1>Not authorized to use this page</h1>;
     } else {
       return (
@@ -333,7 +350,7 @@ const EditOrganisation = (props) => {
       );
     }
   } else {
-    return <h1>Loading</h1>;
+    return <Loading />;
   }
 };
 

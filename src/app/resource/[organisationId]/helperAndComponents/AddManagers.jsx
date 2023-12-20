@@ -22,7 +22,7 @@ function App({ setManager, managers, currentUser, addManager }) {
           setMessage();
         }, "10000");
       } else {
-        setMessage(email.error);
+        setMessage(email.error || email.data);
         setTimeout(() => {
           setMessage("");
         }, "10000");
