@@ -15,7 +15,7 @@ import {
   where,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "../../../config";
+import { db } from "@/lib/firebase";
 import { redirect } from "next/navigation";
 
 let currentUser = {
@@ -33,8 +33,29 @@ const getOrganisation = async (orgId) => {
   if (res.exists()) {
     let result = { id: res.id };
     res = JSON.parse(JSON.stringify(res.data()));
+    let admins = await Promise.all(
+      res.admins.map(async (admin) => {
+        let user = await getUserDoc(admin);
+        return user;
+      })
+    );
+    res.admins = [...admins];
     result = { ...result, ...res };
     return result;
+  }
+};
+
+const getUserDoc = async (userId) => {
+  let user = await getDoc(doc(db, "users", userId));
+  if (user.exists()) {
+    let id = user.id;
+    user = user.data();
+    return {
+      email: user.email,
+      id: id,
+      firstName: user.firstName || user.name,
+      lastName: user.lastName || "no last name",
+    };
   }
 };
 
@@ -74,7 +95,15 @@ let getUser = async (adminEmail) => {
     else if (user.userType == "user") {
       let { password, ...remaining } = user;
       remaining.userType = "admin";
-      return { data: remaining, validity: 1 };
+      return {
+        data: {
+          email: user.email,
+          id: user.id,
+          firstName: user.firstName || user.name,
+          lastName: user.lastName || "no last name",
+        },
+        validity: 1,
+      };
     }
   } else {
     return {
@@ -84,48 +113,62 @@ let getUser = async (adminEmail) => {
     };
   }
 };
+
 const updateAdmins = async (oldAdmins, newAdmins) => {
   console.log("updating users");
-  oldAdmins = oldAdmins.reduce((val, admin) => {
-    return [...val, admin.id];
-  }, []);
-  newAdmins = newAdmins.reduce((val, admin) => {
-    return [...val, admin.id];
-  }, []);
   console.log(oldAdmins, "\n\n\n\n\n\n\n", newAdmins, "\n\n\n\n\n");
-  newAdmins.map(async (admin) => {
-    if (!oldAdmins.includes(admin)) {
-      await updateDoc(doc(db, "users", admin), { userType: "admin" });
-    }
-  });
+  try {
+    newAdmins.map(async (admin) => {
+      if (!oldAdmins.includes(admin)) {
+        await updateDoc(doc(db, "users", admin), { userType: "admin" });
+      }
+    });
 
-  oldAdmins.map(async (admin) => {
-    if (!newAdmins.includes(admin))
-      await updateDoc(doc(db, "users", admin), { userType: "user" });
-  });
+    oldAdmins.map(async (admin) => {
+      if (!newAdmins.includes(admin))
+        await updateDoc(doc(db, "users", admin), { userType: "user" });
+    });
+  } catch (e) {
+    console.log("error here");
+  }
+};
+
+const getOrganisationDoc = async (orgId) => {
+  "use server";
+  let docRef = doc(db, "organisations", orgId);
+  let res = await getDoc(docRef);
+  if (res.exists()) {
+    let result = { id: res.id };
+    res = JSON.parse(JSON.stringify(res.data()));
+    result = { ...result, ...res };
+    return result;
+  }
 };
 const editOrganisation = async (newOrganisation, id) => {
   "use server";
   // console.log("editing", organisation, id);
   newOrganisation.updatedAt = new Date();
-  let oldOrganisation = await getOrganisation(id);
+  let oldOrganisation = await getOrganisationDoc(id);
+  newOrganisation.admins = newOrganisation.admins.reduce((val, admin) => {
+    return [...val, admin.id];
+  }, []);
+  console.log(newOrganisation);
   //loop  through new organisation and remove or add users accordingly
+
+  console.log("\nupating\n", id);
+
   await updateAdmins(oldOrganisation.admins, newOrganisation.admins);
-  await setDoc(doc(db, "organisations", id), newOrganisation, {
+
+  await updateDoc(doc(db, "organisations", id), newOrganisation, {
     merge: true,
   });
+
+  return { validity: 1 };
+  //need to add error
 };
 export default async function Page({ params }) {
   let organisation = await getOrganisation(params.organisationId);
-  let flag = 0;
-  if (currentUser.userType == "manager" || currentUser.userType == "user")
-    // redirect("/"); get this back
-    organisation.admins.map((admin) => {
-      if (admin.id == currentUser.id) {
-        flag = 1;
-      }
-    });
-  // if (!flag) redirect("/"); get this back
+
   return (
     <EditOrganisation
       organisation={organisation}

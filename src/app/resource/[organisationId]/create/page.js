@@ -11,7 +11,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { collection } from "firebase/firestore";
-import { db } from "../../../config";
+import { db } from "@/lib/firebase";
 import { redirect } from "next/navigation";
 
 let currentUser = {
@@ -45,30 +45,26 @@ async function submitResource(data, resourceId) {
 
   data.reviews = [];
   data.reservations = [];
-  data.createdBy = { ...currentUser };
 
   let organisation = await checkPossibility(data.organisationId);
 
   if (organisation.validity) {
     let { organisationData } = organisation;
     console.log(resourceId, "both id's", data.organisationId);
+    let resourceManagers = data.managedBy.reduce(
+      (acc, curr) => [...acc, curr.id],
+      []
+    );
+    data.managedBy = [...resourceManagers];
     await setDoc(doc(db, "resources", resourceId), data);
     await updateUser(data.managedBy);
     // by default the creator of this resource is added to the resource
-    organisationData.resources = [
-      ...organisationData.resources,
-      {
-        // adds resource details and creator or the resource
-        resourceId: resourceId,
-        resourceName: data.name,
-        firstName: currentUser.firstName,
-        lastName: currentUser.lastName,
-        id: currentUser.id,
-      },
-    ];
+    organisationData.resources = [...organisationData.resources, resourceId];
 
-    let orgManagers = organisationData.managers;
-    organisationData.managers = [...orgManagers, ...data.managedBy];
+    organisationData.managers = [
+      ...organisationData.managers,
+      ...resourceManagers,
+    ];
     organisationData.updatedAt = new Date();
     const updateOrganisation = await setDoc(
       doc(db, "organisations", data.organisationId),
@@ -85,7 +81,7 @@ async function submitResource(data, resourceId) {
 
 const updateUser = async (managedBy) => {
   managedBy.map(async (manager) => {
-    await updateDoc(doc(db, "users", manager.id), { userType: "manager" });
+    await updateDoc(doc(db, "users", manager), { userType: "manager" });
   });
 };
 
@@ -136,9 +132,6 @@ let getFireBaseID = async () => {
   return ref.id;
 };
 export default async function Page({ params }) {
-  if (currentUser.userType == "manager" || currentUser.userType == "user")
-    redirect("/");
-
   return (
     <>
       <CreateResource

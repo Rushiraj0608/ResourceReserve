@@ -3,5 +3,5 @@
 import { redirect } from "next/navigation";
 
 export default async function Page({ params }) {
-  redirect(`/dashboard/adminOrgs/${params.organisationId}`);
+  redirect(`/dashboard/managerResources/${params.resourceId}`);
 }

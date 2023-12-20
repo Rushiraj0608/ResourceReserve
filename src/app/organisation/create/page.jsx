@@ -9,16 +9,10 @@ import {
   collection,
   query,
   where,
+  updateDoc,
 } from "firebase/firestore";
-import { db } from "../../config";
-import { redirect } from "next/dist/server/api-utils";
-
-let currentUser = {
-  email: "user@superAdmin.com",
-  userType: "superAdmin",
-  firstName: "userFirstName",
-  lastName: "userLastName",
-};
+// import { db } from "../../config";
+import { db } from "@/lib/firebase";
 
 let checkManager = async (adminEmail) => {
   "use server";
@@ -56,7 +50,15 @@ let checkManager = async (adminEmail) => {
     else if (user.userType == "user") {
       let { password, ...remaining } = user;
       remaining.userType = "admin";
-      return { data: remaining, validity: 1 };
+      return {
+        data: {
+          firstName: user.firstName || user.name,
+          lastName: user.lastName || "no lastName given",
+          email: user.email,
+          id: user.id,
+        },
+        validity: 1,
+      };
     }
   } else {
     return { error: "noUser", data: adminEmail, validity: 0 };
@@ -80,11 +82,12 @@ let checkOrganisationEmail = async (email) => {
   }
 };
 
-const updateUser = async (userid) => {
+const updateUser = async (userid, organisationId) => {
   //if user is not available or network
   "use server";
   await updateDoc(doc(db, "users", userid), {
     userType: "admin",
+    organisationId,
   });
 };
 let addOrganisation = async (newOrganisation) => {
@@ -94,34 +97,32 @@ let addOrganisation = async (newOrganisation) => {
   newOrganisation.updatedAt = new Date();
   newOrganisation.managers = [];
   newOrganisation.resources = [];
-  newOrganisation.createdBy = {
-    ...currentUser,
-  };
 
   let organisation = await checkOrganisationEmail(newOrganisation.email);
   console.log(organisation, "createOrd");
   if (organisation.validity) {
+    newOrganisation.admins = newOrganisation.admins.map((admin) => admin.id);
     const newDoc = await addDoc(
       collection(db, "organisations"),
       newOrganisation
     );
-    console.log(newDoc.id, "kadbfkbasdkjbfuasbdfbhkajdsfky");
+    console.log(
+      newDoc.id,
+      "kadbfkbasdkjbfuasbdfbhkajdsfky",
+      newOrganisation,
+      newOrganisation.createdBy
+    );
     newOrganisation.admins.map(async (admin) => {
-      updateUser(admin.id);
+      updateUser(admin, newDoc.id);
       console.log("updated as admin");
     });
     return { doc: newDoc.id, validity: 1 };
   } else {
-    return { validity: 0 };
+    return { validity: 0, data: "error while creating organisation" };
   }
 };
 
 export default async function Page() {
-  if (!currentUser) {
-    redirect("/login");
-  } else if (currentUser.userType != "superAdmin") {
-    /**need to log this user out or redirect to home page */
-  }
   return (
     <CreateOrganisation
       checkManager={checkManager}

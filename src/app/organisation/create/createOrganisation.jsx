@@ -4,11 +4,31 @@ import {
   emailCheck,
 } from "../../resource/[organisationId]/helperAndComponents/helper";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { NextResponse } from "next/server";
+import { useState, useEffect } from "react";
 import emailjs from "@emailjs/browser";
-
+import { getUserData } from "@/app/actions/user";
 const CreateOrganisation = (props) => {
   const router = useRouter();
+  let [user, setUser] = useState({});
+  let [loading, setLoading] = useState(1);
+  // if (!userData) {
+  //   return NextResponse.redirect("/signin");
+  // } else {
+  //   if (!userData.userType || userData.userType != "superAdmin") {
+  //     return NextResponse.redirect("/signin");
+  //   }
+  // }
+  useEffect(() => {
+    async function fetchData() {
+      const userData = await getUserData();
+      setUser(userData);
+      setLoading(0);
+    }
+
+    fetchData();
+  }, []);
+
   let [errors, setErrors] = useState({});
   let [message, setMessage] = useState();
   let [organisation, setOrganisation] = useState({
@@ -37,14 +57,24 @@ const CreateOrganisation = (props) => {
       delete error.contact;
       delete error.admins;
       setErrors(error);
+      let createdBy = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName || user.name,
+        lastName: user.lastName || "no last name",
+        //add firstname/ lastname/name
+      };
+      data.createdBy = {
+        ...createdBy,
+      };
 
-      let create = await props.addOrganisation(organisation);
+      let create = await props.addOrganisation(data);
       console.log(create);
       if (create.validity) {
         setErrors({ ...errors, general: "" });
         setMessage("Organisation has been created");
         setTimeout(() => {
-          router.push(`/organisation/${create.doc}`);
+          router.push(`/dashboard/adminOrgs/${create.doc}`);
         }, 5000);
       } else {
         setErrors({
@@ -159,138 +189,161 @@ const CreateOrganisation = (props) => {
     let admin = [...organisation.admins].filter((x) => x.email != email);
     setOrganisation({ ...organisation, admins: admin });
   };
-  return (
-    <div className="bg-white h-screen w-full text-black grid grid-rows-4 justify-items-center">
-      <p className="text-8xl font-extrabold text-center my-10  h-fit">
-        CREATE ORGANISATION
-      </p>
-      <form
-        onSubmit={(e) => {
-          createOrgCheck(e);
-        }}
-        className="w-full h-full"
-      >
-        {errors && errors.general && errors.general.length > 0 && (
-          <p>{errors.general}</p>
-        )}
-        <div className=" row-span-3 grid grid-cols-3 w-9/12 px-10 py-10 gap-x-10 gap-y-5 align-middle [&>*:nth-child(odd)]:text-right [&>*:nth-child(even)]:col-span-2 shadow-[0_20px_40px_rgba(0,0,0,0.3)] m-auto">
-          <span class="group relative flex justify-self-end ">
-            <label htmlFor="createOrganisationName">Organisation Name</label>
-            <span class="absolute top-10 scale-0 rounded bg-gray-800 p-2 text-xs text-white group-hover:scale-100">
-              Name of the creating organisation
-            </span>
-          </span>
-          <div>
-            <input
-              onChange={(e) => {
-                setOrganisation({ ...organisation, name: e.target.value });
-              }}
-              required
-              type="text"
-              placeholder="Enter Name of the Organisation"
-              name="organisationName"
-              id="createOrganisationName"
-              className=" border-b-4 border-black w-8/12"
-            />
-            {errors && errors.name && errors.name.length > 0 && (
-              <p>{errors.name}</p>
+  if (!loading) {
+    if (!user) {
+      setTimeout(() => {
+        router.push("/");
+      }, 10000);
+      return <h1>Login Credentials Missing</h1>;
+    } else if ((user && !user.userType) || user.userType != "superAdmin") {
+      setTimeout(() => {
+        router.push("/");
+      }, 10000);
+      return <h1>Not authorized to use this page</h1>;
+    } else {
+      return (
+        <div className="bg-white h-screen w-full text-black grid grid-rows-4 justify-items-center">
+          <p className="text-8xl font-extrabold text-center my-10  h-fit">
+            CREATE ORGANISATION
+          </p>
+          <form
+            onSubmit={(e) => {
+              createOrgCheck(e);
+            }}
+            className="w-full h-full"
+          >
+            {errors && errors.general && errors.general.length > 0 && (
+              <p>{errors.general}</p>
             )}
-          </div>
-          <label htmlFor="createOrganisationEmail">Organisation Email</label>
-          <div>
-            <input
-              onChange={(e) => {
-                setOrganisation({ ...organisation, email: e.target.value });
-              }}
-              required
-              type="email"
-              placeholder="Enter Email of the Organisation"
-              name="organisationEmail"
-              id="createOrganisationEmail"
-              className=" border-b-4 border-black w-8/12"
-            />
-            {errors && errors.email && errors.email.length > 0 && (
-              <p>{errors.email}</p>
-            )}
-          </div>
-          <label htmlFor="createOrganisationContact">
-            Organisation Contact
-          </label>
-          <div>
-            <input
-              onChange={(e) => {
-                setOrganisation({ ...organisation, contact: e.target.value });
-              }}
-              required
-              type="number"
-              placeholder="Enter Name of the Organisation"
-              name="organisationContact"
-              id="createOrganisationContact"
-              className=" border-b-4 border-black w-8/12"
-            />
-            {errors && errors.contact && errors.contact.length > 0 && (
-              <p>{errors.contact}</p>
-            )}
-          </div>
-          <label htmlFor="createOrganisationAdmins">Admin</label>
-          <div className="h-full">
-            <div className="grid grid-cols-3 gap-2">
-              <input
-                type="email"
-                id="createOrganisationAdmins"
-                name="createOrganisationAdmins"
-                placeholder="Add Admin's Email Address"
-                className=" border-b-4 border-black w-full col-span-2"
-              />
-              <button
-                type="button"
-                onClick={addAdmin}
-                disabled={organisation.admins.length >= 2}
-                className="bg-green-500 px-3 py-1 w-fit h-fit  rounded-lg "
-              >
-                Add Admin
+            <div className=" row-span-3 grid grid-cols-3 w-9/12 px-10 py-10 gap-x-10 gap-y-5 align-middle [&>*:nth-child(odd)]:text-right [&>*:nth-child(even)]:col-span-2 shadow-[0_20px_40px_rgba(0,0,0,0.3)] m-auto">
+              <span class="group relative flex justify-self-end ">
+                <label htmlFor="createOrganisationName">
+                  Organisation Name
+                </label>
+                <span class="absolute top-10 scale-0 rounded bg-gray-800 p-2 text-xs text-white group-hover:scale-100">
+                  Name of the creating organisation
+                </span>
+              </span>
+              <div>
+                <input
+                  onChange={(e) => {
+                    setOrganisation({ ...organisation, name: e.target.value });
+                  }}
+                  required
+                  type="text"
+                  placeholder="Enter Name of the Organisation"
+                  name="organisationName"
+                  id="createOrganisationName"
+                  className=" border-b-4 border-black w-8/12"
+                />
+                {errors && errors.name && errors.name.length > 0 && (
+                  <p>{errors.name}</p>
+                )}
+              </div>
+              <label htmlFor="createOrganisationEmail">
+                Organisation Email
+              </label>
+              <div>
+                <input
+                  onChange={(e) => {
+                    setOrganisation({ ...organisation, email: e.target.value });
+                  }}
+                  required
+                  type="email"
+                  placeholder="Enter Email of the Organisation"
+                  name="organisationEmail"
+                  id="createOrganisationEmail"
+                  className=" border-b-4 border-black w-8/12"
+                />
+                {errors && errors.email && errors.email.length > 0 && (
+                  <p>{errors.email}</p>
+                )}
+              </div>
+              <label htmlFor="createOrganisationContact">
+                Organisation Contact
+              </label>
+              <div>
+                <input
+                  onChange={(e) => {
+                    setOrganisation({
+                      ...organisation,
+                      contact: e.target.value,
+                    });
+                  }}
+                  required
+                  type="number"
+                  placeholder="Enter Name of the Organisation"
+                  name="organisationContact"
+                  id="createOrganisationContact"
+                  className=" border-b-4 border-black w-8/12"
+                />
+                {errors && errors.contact && errors.contact.length > 0 && (
+                  <p>{errors.contact}</p>
+                )}
+              </div>
+              <label htmlFor="createOrganisationAdmins">Admin</label>
+              <div className="h-full">
+                <div className="grid grid-cols-3 gap-2">
+                  <input
+                    type="email"
+                    id="createOrganisationAdmins"
+                    name="createOrganisationAdmins"
+                    placeholder="Add Admin's Email Address"
+                    className=" border-b-4 border-black w-full col-span-2"
+                  />
+                  <button
+                    type="button"
+                    onClick={addAdmin}
+                    disabled={organisation.admins.length >= 2}
+                    className="bg-green-500 px-3 py-1 w-fit h-fit  rounded-lg "
+                  >
+                    Add Admin
+                  </button>
+                </div>
+                <div>
+                  {errors && errors.admins && errors.admins.length > 0 && (
+                    <p>{errors.admins}</p>
+                  )}
+                  {message && message.length > 0 && <p>{message}</p>}
+                </div>
+                <div className=" py-1 grid grid-cols-2 h-fit my-5 justify-items-center gap-x-2 gap-y-2 ">
+                  {organisation.admins && organisation.admins.length > 0 && (
+                    <>
+                      {organisation.admins.map((admin, index) => (
+                        <span
+                          className="px-5 py-3 shadow-[0_20px_40px_rgba(0,0,0,0.3)] rounded-md grid gap-1 "
+                          key={`organisationCreateAdmin_${index}`}
+                        >
+                          <span>
+                            Name : {`${admin.firstName} ${admin.lastName}`}
+                          </span>
+                          <span>Email : {admin.email}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              removeAdmin(admin.email);
+                            }}
+                            className="bg-red-300 px-3 py-1"
+                          >
+                            Remove
+                          </button>
+                        </span>
+                      ))}
+                    </>
+                  )}
+                </div>
+              </div>
+              <button className="w-fit my-5 px-5 py-3 text-lg bg-green-500 justify-self-center rounded-lg col-span-full">
+                Create Organisation
               </button>
             </div>
-            <div>
-              {errors && errors.admins && errors.admins.length > 0 && (
-                <p>{errors.admins}</p>
-              )}
-              {message && message.length > 0 && <p>{message}</p>}
-            </div>
-            <div className=" py-1 grid grid-cols-2 h-fit my-5 justify-items-center gap-x-2 gap-y-2 ">
-              {organisation.admins && organisation.admins.length > 0 && (
-                <>
-                  {organisation.admins.map((admin, index) => (
-                    <span
-                      className="px-5 py-3 shadow-[0_20px_40px_rgba(0,0,0,0.3)] rounded-md grid gap-1 "
-                      key={`organisationCreateAdmin_${index}`}
-                    >
-                      <span>
-                        Name : {`${admin.firstName} ${admin.lastName}`}
-                      </span>
-                      <span>Email : {admin.email}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          removeAdmin(admin.email);
-                        }}
-                        className="bg-red-300 px-3 py-1"
-                      >
-                        Remove
-                      </button>
-                    </span>
-                  ))}
-                </>
-              )}
-            </div>
-          </div>
-          <button className="w-fit my-5 px-5 py-3 text-lg bg-green-500 justify-self-center rounded-lg col-span-full">
-            Create Organisation
-          </button>
+          </form>
         </div>
-      </form>
-    </div>
-  );
+      );
+    }
+  } else {
+    return <h1>Loading</h1>;
+  }
 };
 
 export default CreateOrganisation;

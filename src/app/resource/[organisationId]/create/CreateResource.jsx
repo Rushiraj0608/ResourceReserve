@@ -1,12 +1,14 @@
 "use client";
 
-import React from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import TimeSelect from "../helperAndComponents/TimeSelect";
 import Tags from "../helperAndComponents/Tags";
 import AddImages from "../helperAndComponents/addImages";
 import * as formdata from "../helperAndComponents/helper";
 import { s3 } from "../../../config";
 import { getCountFromServer } from "firebase/firestore";
+import { getUserData } from "@/app/actions/user";
 
 const CreateResource = ({
   submitResource,
@@ -42,10 +44,14 @@ const CreateResource = ({
     address2: "",
     state: "",
   };
-  let [resource, setResource] = React.useState(resourceTemplate);
-  let [errors, setError] = React.useState({});
-  let [message, setMessage] = React.useState("");
-  let [loading, setLoading] = React.useState(0);
+
+  let allowedUsers = ["admin", "superAdmin"];
+  let router = useRouter();
+  let [resource, setResource] = useState(resourceTemplate);
+  let [errors, setError] = useState({});
+  let [message, setMessage] = useState("");
+  let [loading, setLoading] = useState(1);
+  let [user, setUser] = useState({});
   let states = [
     "Alabama",
     "Alaska",
@@ -134,7 +140,7 @@ const CreateResource = ({
   };
   const createResource = async (event) => {
     event.preventDefault();
-    // setLoading(1);
+
     console.log(resource);
     let result = formdata.createResourceCheck(resource);
     console.log(result);
@@ -156,6 +162,12 @@ const CreateResource = ({
         "uploaded images and creating resource with resource ID",
         newResourceId
       );
+      resource.createdBy = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName || user.name,
+        lastName: user.lastName || "no last name",
+      };
       await submitResource(resource, newResourceId);
       console.log(resource);
     }
@@ -227,424 +239,462 @@ const CreateResource = ({
     setResource({ ...resource, managedBy: managers });
   };
 
-  return (
-    <div className="bg-slate-400 h-full w-full text-black m-auto pt-40">
-      <button
-        onClick={() => {
-          console.log(resource);
-        }}
-      >
-        print
-      </button>
-      <form onSubmit={createResource}>
-        <p className=" text-8xl col-span-3 text-center mb-20 font-extrabold">
-          Create Resource
-        </p>
-        {!loading ? (
-          <div className="grid grid-cols-3 m-auto w-11/12 bg-white  px-10 py-10 gap-x-10 [&>*]:p-4  [&>*:nth-child(odd)]:text-right [&>*:nth-child(even)]:col-span-2">
-            <label htmlFor="resourceCreateName">Name of the Resource</label>
-            <div>
-              <input
-                className=" border-b-4 border-black"
-                type="text"
-                placeholder="Enter Name of the Resource"
-                name="name"
-                id="resourceCreateName"
-                defaultValue={resource.name}
-                onChange={(e) => {
-                  setResource({ ...resource, name: e.target.value });
-                }}
-                required
-              />
-              {errors && errors.name && errors.name.length > 0 && (
-                <p className="text-red-600">{errors.name}</p>
-              )}
-            </div>
+  useEffect(() => {
+    async function fetchData() {
+      const userData = await getUserData();
+      setUser(userData);
+      setLoading(0);
+    }
 
-            <label
-              htmlFor="resourceCreateDescription"
-              className="inline-block align-top"
-            >
-              Description
-            </label>
-            <div>
-              <textarea
-                name="resourceCreateDescription"
-                id="resourceCreateDescription"
-                className=" p-2 border-2  border-black resize-none"
-                rows={10}
-                cols={70}
-                defaultValue={resource.description}
-                onChange={(e) => {
-                  setResource({ ...resource, description: e.target.value });
-                }}
-                placeholder="Description of the resource"
-              ></textarea>
-              {errors &&
-                errors.description &&
-                errors.description.length > 0 && (
-                  <p className="text-red-600">{errors.description}</p>
-                )}
-            </div>
+    fetchData();
+  }, []);
 
-            <label htmlFor="resourceCreateType">Type of the Resource</label>
-            <div>
-              <input
-                className="  border-b-4 border-black"
-                type="text"
-                placeholder="Enter type of the Resource"
-                name="resourceCreateType"
-                id="resourceCreateType"
-                defaultValue={resource.type}
-                onChange={(e) => {
-                  setResource({ ...resource, type: e.target.value });
-                }}
-                required
-              />
-              {errors && errors.type && errors.type.length > 0 && (
-                <p className="text-red-600">{errors.type}</p>
-              )}
-            </div>
-            <label>Tags</label>
-            <Tags setTags={setTags} tags={resource.tags} />
-
-            <AddImages images={resource.images} setImages={setImages} />
-            <label>Schedule</label>
-            <div>
-              <TimeSelect setSchedule={setSchedule} />
-              {errors && errors.schedule && errors.schedule.length > 0 && (
-                <p className="text-red-600">{errors.schedule}</p>
-              )}
-            </div>
-            <p className="text-bolder text-xl font-extrabold ">
-              Resource Settings
+  if (!loading) {
+    if (!user) {
+      setTimeout(() => {
+        router.push("/");
+      }, 10000);
+      return <h1>Login Credentials Missing</h1>;
+    } else if (
+      user &&
+      (!user.userType || !allowedUsers.includes(user.userType))
+    ) {
+      setTimeout(() => {
+        router.push("/");
+      }, 10000);
+      return <h1>Not authorized to use this page</h1>;
+    } else {
+      return (
+        <div className="bg-slate-400 h-full w-full text-black m-auto pt-40">
+          <button
+            onClick={() => {
+              console.log(resource);
+            }}
+          >
+            print
+          </button>
+          <form onSubmit={createResource}>
+            <p className=" text-8xl col-span-3 text-center mb-20 font-extrabold">
+              Create Resource
             </p>
-            <div className="grid grid-cols-2 gap-x-20 gap-y-5 m-5">
-              <span>
-                <label
-                  htmlFor="resourceCreateReservationLength"
-                  className="block"
-                >
-                  How long can a reservation last (in min)
-                </label>
-                <span>
-                  <input
-                    type="number"
-                    placeholder="enter a number in minutes"
-                    name="resourceCreateReservationLength"
-                    id="resourceCreateReservationLength"
-                    defaultValue={resource.reservationLength}
-                    className=" block  border-b-4 w-full border-black focus:outline-none"
-                    onChange={(e) => {
-                      setResource({
-                        ...resource,
-                        reservationLength: e.target.value,
-                      });
-                    }}
-                    min="1"
-                    max="300"
-                    required
-                  />
-                  {errors &&
-                    errors.reservationLength &&
-                    errors.reservationLength.length > 0 && (
-                      <p className="text-red-600">{errors.reservationLength}</p>
-                    )}
-                </span>
-              </span>
-
-              <span>
-                <label htmlFor="resourceCreateReservationGap" className="block">
-                  Is there resting period between reservations
-                </label>
-                <span>
-                  <input
-                    type="number"
-                    placeholder="enter a number in minutes"
-                    name="resourceCreateReservationGap"
-                    id="resourceCreateReservationGap"
-                    defaultValue={resource.reservationGap}
-                    className=" block  border-b-4 w-full border-black focus:outline-none"
-                    onChange={(e) => {
-                      setResource({
-                        ...resource,
-                        reservationGap: e.target.value,
-                      });
-                    }}
-                    required
-                  />
-                  {errors &&
-                    errors.reservationGap &&
-                    errors.reservationGap.length > 0 && (
-                      <p className="text-red-600">{errors.reservationGap}</p>
-                    )}
-                </span>
-              </span>
-              <span>
-                <label htmlFor="resourceCreateCapacity" className="mb-3">
-                  Capacity
-                </label>
-                <input
-                  type="number"
-                  placeholder="capacity of the resource"
-                  name="resourceCreateCapacity"
-                  id="resourceCreateCapacity"
-                  className=" block  border-b-4 w-full border-black focus:outline-none"
-                  required
-                  defaultValue={resource.capacity}
-                  onChange={(e) => {
-                    setResource({ ...resource, capacity: e.target.value });
-                  }}
-                />
-                {errors && errors.capacity && errors.capacity.length > 0 && (
-                  <p className="text-red-600">{errors.capacity}</p>
-                )}
-              </span>
-              <span className="text-center">
-                <label className="block">
-                  Is permission required to use this resource
-                </label>
-                <label htmlFor="permission_no" className="ml-5 mr-5">
-                  <input
-                    type="radio"
-                    id="permission_no"
-                    name="permission"
-                    value="no"
-                    className="ml-1 mr-1"
-                    required
-                    onChange={(e) => {
-                      resource.permission = e.target.value;
-                      setResource({ ...resource });
-                    }}
-                  />
-                  no
-                </label>
-                <label htmlFor="permission_yes" className="ml-5 mr-5">
-                  <input
-                    type="radio"
-                    id="permission_yes"
-                    name="permission"
-                    value="yes"
-                    className="ml-1 mr-1 p-1"
-                    onChange={(e) => {
-                      resource.permission = e.target.value;
-                      setResource({ ...resource });
-                    }}
-                  />
-                  yes
-                </label>
-              </span>
-            </div>
-
-            <label
-              htmlFor="createResourceRules"
-              className="text-bolder text-xl font-extrabold block mb-3"
-            >
-              Rules
-            </label>
-            <span>
-              <textarea
-                name="createResourceRules"
-                id="createResourceRules"
-                className="block ml-3 p-3 border-2 border-black resize-none"
-                rows={10}
-                cols={70}
-                onChange={(e) => {
-                  setResource({ ...resource, rules: e.target.value });
-                }}
-                defaultValue={resource.rules}
-                placeholder="Rules for using the resource"
-              ></textarea>
-              {errors && errors.rules && errors.rules.length > 0 && (
-                <p className="text-red-600">{errors.rules}</p>
-              )}
-            </span>
-
-            <label>Contact</label>
-            <div className="mt-5 mb-5 grid grid-cols-2 gap-x-5 gap-y-3 justify-items-center ">
-              <span>
-                <label htmlFor="createResourceEmail" className="mb-3">
-                  Email
-                </label>
-                <span>
-                  <input
-                    type="email"
-                    placeholder="Email contact"
-                    name="createResourceEmail"
-                    id="createResourceEmail"
-                    className="block pl-1 pt-1 focus:outline-0 border-b-4 border-black"
-                    required
-                    defaultValue={resource.email}
-                    onChange={(e) => {
-                      setResource({ ...resource, email: e.target.value });
-                    }}
-                  />
-                  {errors && errors.email && errors.email.length > 0 && (
-                    <p className="text-red-600">{errors.email}</p>
-                  )}
-                </span>
-              </span>
-              <span>
-                <label htmlFor="createResourceContact" className="mb-3">
-                  Contact
-                </label>
-                <span>
-                  <input
-                    type="number"
-                    placeholder="Phone Contact"
-                    name="createResourceContact"
-                    id="createResourceContact"
-                    className="block  border-b-4 border-black"
-                    defaultValue={resource.contact}
-                    onChange={(e) => {
-                      setResource({ ...resource, contact: e.target.value });
-                    }}
-                  />
-                  {errors && errors.contact && errors.contact.length > 0 && (
-                    <p className="text-red-600">{errors.contact}</p>
-                  )}
-                </span>
-              </span>
-              <span>
-                <label htmlFor="createResourceAddress1" className="block">
-                  Address Lane 1
-                </label>
-                <span>
-                  <input
-                    defaultValue={resource.address1}
-                    type="text"
-                    name="createResourceAddress1"
-                    id="createResourceAddress1"
-                    placeholder="Address Lane 1"
-                    className="block border-b-4 border-black"
-                    required
-                    onChange={(e) => {
-                      setResource({ ...resource, address1: e.target.value });
-                    }}
-                  />
-                  {errors && errors.address1 && errors.address1.length > 0 && (
-                    <p className="text-red-600">{errors.address1}</p>
-                  )}
-                </span>
-              </span>
-              <span>
-                <label htmlFor="createResourceAddress2" className="block">
-                  Address Lane 2
-                </label>
-                <span>
-                  <input
-                    defaultValue={resource.address2}
-                    type="text"
-                    name="createResourceAddress2"
-                    id="createResourceAddress2"
-                    placeholder="Address Lane 2"
-                    className="block  border-b-4 border-black"
-                    onChange={(e) => {
-                      setResource({ ...resource, address2: e.target.value });
-                    }}
-                  />
-                  {errors && errors.address2 && errors.address2.length > 0 && (
-                    <p className="text-red-600">{errors.address2}</p>
-                  )}
-                </span>
-              </span>
-              <span>
-                <label htmlFor="createResourceAddress2" className="block">
-                  City Name
-                </label>
-                <span>
-                  <input
-                    defaultValue={resource.city}
-                    type="text"
-                    name="createResourceCity"
-                    id="createResourceCity"
-                    className="block border-b-4 border-black"
-                    placeholder="City"
-                    required
-                    onChange={(e) => {
-                      setResource({ ...resource, city: e.target.value });
-                    }}
-                  />
-                  {errors && errors.address2 && errors.address2.length > 0 && (
-                    <p className="text-red-600">{errors.address2}</p>
-                  )}
-                </span>
-              </span>
-              <span>
-                <label htmlFor="createResourceState" className="block">
-                  State
-                </label>
-                <select
-                  id="createResourceState"
-                  onChange={(e) => {
-                    console.log(e.target.value);
-                    setResource({ ...resource, state: e.target.value });
-                  }}
-                  required
-                >
-                  <option value="">Select A State</option>
-                  {states.map((x, y) => (
-                    <option value={x} key={`state_${x}`}>
-                      {x}
-                    </option>
-                  ))}
-                </select>
-                {errors && errors.state && errors.state.length > 0 && (
-                  <p className="text-red-600">{errors.state}</p>
-                )}
-              </span>
-            </div>
-            <label htmlFor="addResourceManager">Add Manager</label>
-            <div>
+            (
+            <div className="grid grid-cols-3 m-auto w-11/12 bg-white  px-10 py-10 gap-x-10 [&>*]:p-4  [&>*:nth-child(odd)]:text-right [&>*:nth-child(even)]:col-span-2">
+              <label htmlFor="resourceCreateName">Name of the Resource</label>
               <div>
                 <input
-                  id="addResourceManager"
-                  placeholder="Enter email of the user to add manager"
-                  type="email"
+                  className=" border-b-4 border-black"
+                  type="text"
+                  placeholder="Enter Name of the Resource"
+                  name="name"
+                  id="resourceCreateName"
+                  defaultValue={resource.name}
+                  onChange={(e) => {
+                    setResource({ ...resource, name: e.target.value });
+                  }}
+                  required
                 />
-                <button type="button" onClick={() => addManager()}>
-                  Add Manager
-                </button>
+                {errors && errors.name && errors.name.length > 0 && (
+                  <p className="text-red-600">{errors.name}</p>
+                )}
               </div>
-              {errors && errors.managedBy && errors.managedBy.length > 0 && (
-                <p>{errors.managedBy}</p>
-              )}
-              {message && message.length > 0 && <p>{message}</p>}
-              {resource.managedBy && resource.managedBy.length > 0 && (
-                <div className="grid grid-cols-2 my-5 ">
-                  {console.log(resource.managedBy)}
-                  {resource.managedBy.map((manager) => (
-                    <div>
-                      <span>
-                        Name : {`${manager.firstName} ${manager.lastName}`}
-                      </span>
-                      <span>Email : {manager.email}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          removeManager(manager.email);
-                        }}
-                      >
-                        {" "}
-                        Remove Manager
-                      </button>
-                    </div>
-                  ))}
+
+              <label
+                htmlFor="resourceCreateDescription"
+                className="inline-block align-top"
+              >
+                Description
+              </label>
+              <div>
+                <textarea
+                  name="resourceCreateDescription"
+                  id="resourceCreateDescription"
+                  className=" p-2 border-2  border-black resize-none"
+                  rows={10}
+                  cols={70}
+                  defaultValue={resource.description}
+                  onChange={(e) => {
+                    setResource({ ...resource, description: e.target.value });
+                  }}
+                  placeholder="Description of the resource"
+                ></textarea>
+                {errors &&
+                  errors.description &&
+                  errors.description.length > 0 && (
+                    <p className="text-red-600">{errors.description}</p>
+                  )}
+              </div>
+
+              <label htmlFor="resourceCreateType">Type of the Resource</label>
+              <div>
+                <input
+                  className="  border-b-4 border-black"
+                  type="text"
+                  placeholder="Enter type of the Resource"
+                  name="resourceCreateType"
+                  id="resourceCreateType"
+                  defaultValue={resource.type}
+                  onChange={(e) => {
+                    setResource({ ...resource, type: e.target.value });
+                  }}
+                  required
+                />
+                {errors && errors.type && errors.type.length > 0 && (
+                  <p className="text-red-600">{errors.type}</p>
+                )}
+              </div>
+              <label>Tags</label>
+              <Tags setTags={setTags} tags={resource.tags} />
+
+              <AddImages images={resource.images} setImages={setImages} />
+              <label>Schedule</label>
+              <div>
+                <TimeSelect setSchedule={setSchedule} />
+                {errors && errors.schedule && errors.schedule.length > 0 && (
+                  <p className="text-red-600">{errors.schedule}</p>
+                )}
+              </div>
+              <p className="text-bolder text-xl font-extrabold ">
+                Resource Settings
+              </p>
+              <div className="grid grid-cols-2 gap-x-20 gap-y-5 m-5">
+                <span>
+                  <label
+                    htmlFor="resourceCreateReservationLength"
+                    className="block"
+                  >
+                    How long can a reservation last (in min)
+                  </label>
+                  <span>
+                    <input
+                      type="number"
+                      placeholder="enter a number in minutes"
+                      name="resourceCreateReservationLength"
+                      id="resourceCreateReservationLength"
+                      defaultValue={resource.reservationLength}
+                      className=" block  border-b-4 w-full border-black focus:outline-none"
+                      onChange={(e) => {
+                        setResource({
+                          ...resource,
+                          reservationLength: e.target.value,
+                        });
+                      }}
+                      min="1"
+                      max="300"
+                      required
+                    />
+                    {errors &&
+                      errors.reservationLength &&
+                      errors.reservationLength.length > 0 && (
+                        <p className="text-red-600">
+                          {errors.reservationLength}
+                        </p>
+                      )}
+                  </span>
+                </span>
+
+                <span>
+                  <label
+                    htmlFor="resourceCreateReservationGap"
+                    className="block"
+                  >
+                    Is there resting period between reservations
+                  </label>
+                  <span>
+                    <input
+                      type="number"
+                      placeholder="enter a number in minutes"
+                      name="resourceCreateReservationGap"
+                      id="resourceCreateReservationGap"
+                      defaultValue={resource.reservationGap}
+                      className=" block  border-b-4 w-full border-black focus:outline-none"
+                      onChange={(e) => {
+                        setResource({
+                          ...resource,
+                          reservationGap: e.target.value,
+                        });
+                      }}
+                      required
+                    />
+                    {errors &&
+                      errors.reservationGap &&
+                      errors.reservationGap.length > 0 && (
+                        <p className="text-red-600">{errors.reservationGap}</p>
+                      )}
+                  </span>
+                </span>
+                <span>
+                  <label htmlFor="resourceCreateCapacity" className="mb-3">
+                    Capacity
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="capacity of the resource"
+                    name="resourceCreateCapacity"
+                    id="resourceCreateCapacity"
+                    className=" block  border-b-4 w-full border-black focus:outline-none"
+                    required
+                    defaultValue={resource.capacity}
+                    onChange={(e) => {
+                      setResource({ ...resource, capacity: e.target.value });
+                    }}
+                  />
+                  {errors && errors.capacity && errors.capacity.length > 0 && (
+                    <p className="text-red-600">{errors.capacity}</p>
+                  )}
+                </span>
+                <span className="text-center">
+                  <label className="block">
+                    Is permission required to use this resource
+                  </label>
+                  <label htmlFor="permission_no" className="ml-5 mr-5">
+                    <input
+                      type="radio"
+                      id="permission_no"
+                      name="permission"
+                      value="no"
+                      className="ml-1 mr-1"
+                      required
+                      onChange={(e) => {
+                        resource.permission = e.target.value;
+                        setResource({ ...resource });
+                      }}
+                    />
+                    no
+                  </label>
+                  <label htmlFor="permission_yes" className="ml-5 mr-5">
+                    <input
+                      type="radio"
+                      id="permission_yes"
+                      name="permission"
+                      value="yes"
+                      className="ml-1 mr-1 p-1"
+                      onChange={(e) => {
+                        resource.permission = e.target.value;
+                        setResource({ ...resource });
+                      }}
+                    />
+                    yes
+                  </label>
+                </span>
+              </div>
+
+              <label
+                htmlFor="createResourceRules"
+                className="text-bolder text-xl font-extrabold block mb-3"
+              >
+                Rules
+              </label>
+              <span>
+                <textarea
+                  name="createResourceRules"
+                  id="createResourceRules"
+                  className="block ml-3 p-3 border-2 border-black resize-none"
+                  rows={10}
+                  cols={70}
+                  onChange={(e) => {
+                    setResource({ ...resource, rules: e.target.value });
+                  }}
+                  defaultValue={resource.rules}
+                  placeholder="Rules for using the resource"
+                ></textarea>
+                {errors && errors.rules && errors.rules.length > 0 && (
+                  <p className="text-red-600">{errors.rules}</p>
+                )}
+              </span>
+
+              <label>Contact</label>
+              <div className="mt-5 mb-5 grid grid-cols-2 gap-x-5 gap-y-3 justify-items-center ">
+                <span>
+                  <label htmlFor="createResourceEmail" className="mb-3">
+                    Email
+                  </label>
+                  <span>
+                    <input
+                      type="email"
+                      placeholder="Email contact"
+                      name="createResourceEmail"
+                      id="createResourceEmail"
+                      className="block pl-1 pt-1 focus:outline-0 border-b-4 border-black"
+                      required
+                      defaultValue={resource.email}
+                      onChange={(e) => {
+                        setResource({ ...resource, email: e.target.value });
+                      }}
+                    />
+                    {errors && errors.email && errors.email.length > 0 && (
+                      <p className="text-red-600">{errors.email}</p>
+                    )}
+                  </span>
+                </span>
+                <span>
+                  <label htmlFor="createResourceContact" className="mb-3">
+                    Contact
+                  </label>
+                  <span>
+                    <input
+                      type="number"
+                      placeholder="Phone Contact"
+                      name="createResourceContact"
+                      id="createResourceContact"
+                      className="block  border-b-4 border-black"
+                      defaultValue={resource.contact}
+                      onChange={(e) => {
+                        setResource({ ...resource, contact: e.target.value });
+                      }}
+                    />
+                    {errors && errors.contact && errors.contact.length > 0 && (
+                      <p className="text-red-600">{errors.contact}</p>
+                    )}
+                  </span>
+                </span>
+                <span>
+                  <label htmlFor="createResourceAddress1" className="block">
+                    Address Lane 1
+                  </label>
+                  <span>
+                    <input
+                      defaultValue={resource.address1}
+                      type="text"
+                      name="createResourceAddress1"
+                      id="createResourceAddress1"
+                      placeholder="Address Lane 1"
+                      className="block border-b-4 border-black"
+                      required
+                      onChange={(e) => {
+                        setResource({ ...resource, address1: e.target.value });
+                      }}
+                    />
+                    {errors &&
+                      errors.address1 &&
+                      errors.address1.length > 0 && (
+                        <p className="text-red-600">{errors.address1}</p>
+                      )}
+                  </span>
+                </span>
+                <span>
+                  <label htmlFor="createResourceAddress2" className="block">
+                    Address Lane 2
+                  </label>
+                  <span>
+                    <input
+                      defaultValue={resource.address2}
+                      type="text"
+                      name="createResourceAddress2"
+                      id="createResourceAddress2"
+                      placeholder="Address Lane 2"
+                      className="block  border-b-4 border-black"
+                      onChange={(e) => {
+                        setResource({ ...resource, address2: e.target.value });
+                      }}
+                    />
+                    {errors &&
+                      errors.address2 &&
+                      errors.address2.length > 0 && (
+                        <p className="text-red-600">{errors.address2}</p>
+                      )}
+                  </span>
+                </span>
+                <span>
+                  <label htmlFor="createResourceAddress2" className="block">
+                    City Name
+                  </label>
+                  <span>
+                    <input
+                      defaultValue={resource.city}
+                      type="text"
+                      name="createResourceCity"
+                      id="createResourceCity"
+                      className="block border-b-4 border-black"
+                      placeholder="City"
+                      required
+                      onChange={(e) => {
+                        setResource({ ...resource, city: e.target.value });
+                      }}
+                    />
+                    {errors &&
+                      errors.address2 &&
+                      errors.address2.length > 0 && (
+                        <p className="text-red-600">{errors.address2}</p>
+                      )}
+                  </span>
+                </span>
+                <span>
+                  <label htmlFor="createResourceState" className="block">
+                    State
+                  </label>
+                  <select
+                    id="createResourceState"
+                    onChange={(e) => {
+                      console.log(e.target.value);
+                      setResource({ ...resource, state: e.target.value });
+                    }}
+                    required
+                  >
+                    <option value="">Select A State</option>
+                    {states.map((x, y) => (
+                      <option value={x} key={`state_${x}`}>
+                        {x}
+                      </option>
+                    ))}
+                  </select>
+                  {errors && errors.state && errors.state.length > 0 && (
+                    <p className="text-red-600">{errors.state}</p>
+                  )}
+                </span>
+              </div>
+              <label htmlFor="addResourceManager">Add Manager</label>
+              <div>
+                <div>
+                  <input
+                    id="addResourceManager"
+                    placeholder="Enter email of the user to add manager"
+                    type="email"
+                  />
+                  <button type="button" onClick={() => addManager()}>
+                    Add Manager
+                  </button>
                 </div>
-              )}
+                {errors && errors.managedBy && errors.managedBy.length > 0 && (
+                  <p>{errors.managedBy}</p>
+                )}
+                {message && message.length > 0 && <p>{message}</p>}
+                {resource.managedBy && resource.managedBy.length > 0 && (
+                  <div className="grid grid-cols-2 my-5 ">
+                    {console.log(resource.managedBy)}
+                    {resource.managedBy.map((manager) => (
+                      <div>
+                        <span>
+                          Name : {`${manager.firstName} ${manager.lastName}`}
+                        </span>
+                        <span>Email : {manager.email}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            removeManager(manager.email);
+                          }}
+                        >
+                          {" "}
+                          Remove Manager
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                type="submit"
+                className="bg-green-500 col-span-full max-w-fit px-5 py-2 rounded-xl justify-self-center"
+              >
+                Create Resource
+              </button>
             </div>
-            <button
-              type="submit"
-              className="bg-green-500 col-span-full max-w-fit px-5 py-2 rounded-xl justify-self-center"
-            >
-              Create Resource
-            </button>
-          </div>
-        ) : (
-          <h1>loading</h1>
-        )}
-      </form>
-    </div>
-  );
+            )
+          </form>
+        </div>
+      );
+    }
+  } else {
+    return <h1>Loading</h1>;
+  }
 };
 export default CreateResource;
