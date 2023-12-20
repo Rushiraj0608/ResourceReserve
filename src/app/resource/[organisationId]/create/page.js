@@ -50,7 +50,7 @@ async function submitResource(data, resourceId) {
     );
     data.managedBy = [...resourceManagers];
     await setDoc(doc(db, "resources", resourceId), data);
-    await updateUser(data.managedBy,resourceId,data.organisationId);
+    await updateUser(data.managedBy, resourceId, data.organisationId);
     // by default the creator of this resource is added to the resource
     organisationData.resources = [...organisationData.resources, resourceId];
 
@@ -72,9 +72,13 @@ async function submitResource(data, resourceId) {
   }
 }
 
-const updateUser = async (managedBy,resourceId,organisationId) => {
+const updateUser = async (managedBy, resourceId, organisationId) => {
   managedBy.map(async (manager) => {
-    await updateDoc(doc(db, "users", manager), { userType: "manager",resourceId,organisationId });
+    await updateDoc(doc(db, "users", manager), {
+      userType: "manager",
+      resourceId,
+      organisationId,
+    });
   });
 };
 
