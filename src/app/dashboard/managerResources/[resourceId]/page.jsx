@@ -5,14 +5,14 @@ import { useEffect, useState } from "react";
 import { getResourceById } from "../../../actions/resources";
 import Image from "next/image";
 import { getUserData } from "@/app/actions/user";
-import { redirect } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 
-const DashboardResourcePage =  ({ params }) => {
+const DashboardResourcePage = ({ params }) => {
+  let router = useRouter();
   const [resource, setResource] = useState({});
 
   const [currentUser, setCurrentUser] = useState({});
 
-  
   if (
     currentUser.userType === "user" ||
     currentUser.userType === "Admin" ||
@@ -22,7 +22,7 @@ const DashboardResourcePage =  ({ params }) => {
   }
 
   async function fetchData() {
-    const fetchedResource = await getResourceById(params);
+    const fetchedResource = await getResourceById(params.resourceId);
     setResource(fetchedResource);
   }
 
@@ -46,8 +46,8 @@ const DashboardResourcePage =  ({ params }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {resource.images.map((image, index) => (
               <div key={index} className="relative group">
-                <Image
-                  src={image}
+                <img
+                  src={image.blob || image}
                   alt={`${resource.name} Image`}
                   width={200} // Adjust the size as needed
                   height={200} // Adjust the size as needed
@@ -70,6 +70,17 @@ const DashboardResourcePage =  ({ params }) => {
       <div className="text-center mb-8">
         <h2 className="text-xl font-semibold mb-2">Description</h2>
         <p>{resource.description}</p>
+        <button
+          type="button"
+          onClick={() =>
+            router.push(
+              `/resource/${resource.organisationId}/${resource.id}/edit`
+            )
+          }
+          className=" m-2 px-5 py-2 bg-blue-500"
+        >
+          Edit Resource
+        </button>
       </div>
 
       <div className="text-center mb-8">

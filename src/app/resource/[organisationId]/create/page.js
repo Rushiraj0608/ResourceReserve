@@ -11,7 +11,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { collection } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import db from "@/lib/firebase";
 import { redirect } from "next/navigation";
 
 const checkPossibility = async (organisationId) => {
@@ -50,7 +50,7 @@ async function submitResource(data, resourceId) {
     );
     data.managedBy = [...resourceManagers];
     await setDoc(doc(db, "resources", resourceId), data);
-    await updateUser(data.managedBy, resourceId, data.organisationId);
+    await updateUser(resourceId, data);
     // by default the creator of this resource is added to the resource
     organisationData.resources = [...organisationData.resources, resourceId];
 
@@ -66,18 +66,19 @@ async function submitResource(data, resourceId) {
         merge: true,
       }
     );
-    redirect(`/resource/${data.organisationId}/${resourceId}/edit`);
+    redirect(`/dashboard/managerResources/${resourceId}`);
   } else {
     return { validity: 0, data: organisation.data };
   }
 }
 
-const updateUser = async (managedBy, resourceId, organisationId) => {
-  managedBy.map(async (manager) => {
+const updateUser = async (resourceId, data) => {
+  data.managedBy.map(async (manager) => {
     await updateDoc(doc(db, "users", manager), {
       userType: "manager",
       resourceId,
-      organisationId,
+      organisationId: data.organisationId,
+      resourceName: data.name,
     });
   });
 };

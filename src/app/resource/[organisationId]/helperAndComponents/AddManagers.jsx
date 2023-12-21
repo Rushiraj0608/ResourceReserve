@@ -1,12 +1,12 @@
 "use client";
 import { useState } from "react";
 import * as helpers from "./helper";
-function App({ setManager, managers, currentUser, addManager }) {
+function App({ setManager, managers, addManager }) {
   let [errors, setErrors] = useState([]);
   let [message, setMessage] = useState([]);
   function removeManagedBy(e) {
     let manager = managers.filter((x) => x.id != e);
-    console.log(manager);
+
     setManager(manager);
   }
   async function addNewManager() {
@@ -77,15 +77,7 @@ function App({ setManager, managers, currentUser, addManager }) {
                     removeManagedBy(x.id);
                   }}
                   alt="added new image"
-                  disabled={
-                    (currentUser.userType == "admin"
-                      ? false
-                      : null ||
-                        (currentUser.userType == "manager" &&
-                        x.userType == "manager"
-                          ? false
-                          : true)) || managers.length < 2
-                  }
+                  disabled={managers.length < 2}
                 >
                   Remover Manager
                 </button>

@@ -9,16 +9,20 @@ import {
 import { getResourceById } from "../../../actions/resources";
 import { getUserById } from "../../../actions/users";
 import { useState, useEffect } from "react";
-import { redirect } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import Image from "next/image";
 import { getUserData } from "@/app/actions/user";
+import { Router } from "next/router";
+import Link from "next/link";
 
 const organizationPage = ({ params }) => {
+  const router = useRouter();
   const [organization, setOrganization] = useState({});
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState([]);
   const [managers, setManagers] = useState([]);
+  const [admins, setAdmins] = useState([]);
   const [resources, setResources] = useState([]);
   const [currentUser, setCurrentUser] = useState({});
 
@@ -57,8 +61,12 @@ const organizationPage = ({ params }) => {
     const fetchedManagers = await Promise.all(
       fetchedOrganization.managers.map((manager) => getUserById(manager))
     );
+    const fetchedAdmins = await Promise.all(
+      fetchedOrganization.admins.map((admin) => getUserById(admin))
+    );
 
     setManagers(fetchedManagers);
+    setAdmins(fetchedAdmins);
     setUsers(users);
     setMembers(members);
     setOrganization(fetchedOrganization);
@@ -119,7 +127,16 @@ const organizationPage = ({ params }) => {
           <h1 className="text-3xl font-bold">{organization.name}</h1>
           <h3 className="text-xl font-bold">Email: {organization.email}</h3>
           <h3 className="text-xl font-bold">Contact: {organization.contact}</h3>
+          <button
+            type="button"
+            onClick={() => {
+              router.push(`/organisation/${params.organizationId}/edit`);
+            }}
+          >
+            Edit organization
+          </button>
         </div>
+        {/*
         <div className="mb-8 flex justify-center">
           {organization.image ? (
             <Image
@@ -139,7 +156,7 @@ const organizationPage = ({ params }) => {
             />
           )}
         </div>
-
+          */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-2">Managers</h2>
           <ul className="space-y-4">
@@ -152,7 +169,18 @@ const organizationPage = ({ params }) => {
             ))}
           </ul>
         </div>
-
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-2">Admins</h2>
+          <ul className="space-y-4">
+            {organization.admins?.map((admin) => (
+              <li key={admin} className="flex items-center justify-between">
+                <p>
+                  {admin.firstName} {admin.lastName}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-2">Resources</h2>
           <ul className="space-y-4">
@@ -161,12 +189,25 @@ const organizationPage = ({ params }) => {
                 key={resource.id}
                 className="flex items-center justify-between"
               >
-                <p>{resource.name}</p>
+                <p>
+                  <Link href={`/dashboard/managerResources/${resource.id}`}>
+                    {resource.name}
+                  </Link>
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push(
+                      `/resource/${organization.id}/${resource.id}/edit`
+                    )
+                  }
+                >
+                  Edit Resource
+                </button>
               </li>
             ))}
           </ul>
         </div>
-
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-2">
             Requests from users to join the organization
@@ -199,7 +240,6 @@ const organizationPage = ({ params }) => {
             <p>No join requests</p>
           )}
         </div>
-
         <div>
           <h2 className="text-xl font-semibold mb-2">
             All members of this organization

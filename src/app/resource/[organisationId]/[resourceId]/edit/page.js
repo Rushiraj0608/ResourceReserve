@@ -1,7 +1,3 @@
-/**
- * is a manager is removed from the resource his doc must be edit as dicussed in groudp
- */
-
 import {
   doc,
   getDocs,
@@ -13,110 +9,144 @@ import {
   updateDoc,
   deleteField,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import db from "@/lib/firebase";
 import EditResource from "./EditResource";
 import { s3 } from "../../../../../lib/config";
 
 async function getData(params) {
   "use server";
-  let docRef = doc(db, "resources", params.resourceId);
-  let res = await getDoc(docRef);
+  try {
+    let docRef = doc(db, "resources", params.resourceId);
+    let res = await getDoc(docRef);
 
-  if (res.exists()) {
-    let result = JSON.parse(JSON.stringify(res.data()));
+    if (res.exists()) {
+      let result = JSON.parse(JSON.stringify(res.data()));
 
-    // we need to redirect to somewhere
-    // if (result.organisationId != params.organisationId) {
-    // redirect("/home");
-    // }
+      if (result.organisationId != params.organisationId) {
+        throw `this resource is not a part of this organisation`;
+      }
 
-    result.managedBy = await Promise.all(
-      result.managedBy.map(async (x) => {
-        let usersref = doc(db, "users", `${x}`);
-        let user = await getDoc(usersref);
-        if (user.exists()) {
-          user = user.data();
-          user.id = x;
-          return {
-            id: user.id,
-            firstName: user.firstName || user.name,
-            lastName: user.lastName || "no last name",
-            email: user.email,
-          };
-        }
-      })
-    );
+      result.managedBy = await Promise.all(
+        result.managedBy.map(async (x) => {
+          let usersref = doc(db, "users", `${x}`);
+          let user = await getDoc(usersref);
+          if (user.exists()) {
+            user = user.data();
+            user.id = x;
+            return {
+              id: user.id,
+              firstName: user.firstName || user.name,
+              lastName: user.lastName || "no last name",
+              email: user.email,
+            };
+          }
+        })
+      );
 
-    result.imageKeys = [...result.images];
-    result.images = await Promise.all(
-      result.images.map((image) => {
-        const url = s3.getSignedUrl("getObject", {
-          Bucket: "resourcereserves3",
-          Key: image,
-          Expires: 300,
-        });
-        console.log(url);
-        return url;
-      })
-    );
-    return JSON.parse(JSON.stringify(result));
+      result.imageKeys = [...result.images];
+      result.images = await Promise.all(
+        result.images.map((image) => {
+          const url = s3.getSignedUrl("getObject", {
+            Bucket: "resourcereserves3",
+            Key: image,
+            Expires: 300,
+          });
+          console.log(url);
+          return url;
+        })
+      );
+      return { validity: 1, data: JSON.parse(JSON.stringify(result)) };
+    } else {
+      throw `error while loading resource`;
+    }
+  } catch (e) {
+    console.log(e);
+    return { validity: 0, error: e };
   }
 }
 
-let getResource = async (resourceId) => {
-  let resource = await getDoc(doc(db, "resources", resourceId));
-  return resource.data();
-};
-
 let updateResource = async (newData, params) => {
   "use server";
-  let oldResource = await getResource(params.resourceId);
 
-  newData.updatedAt = new Date();
-  newData.updatedBy = "bhanu";
-  delete newData.imageKeys;
-  newData.managedBy = newData.managedBy.reduce(
-    (acc, current) => [...acc, current.id],
-    []
-  );
-  let docRef = doc(db, "resources", params.resourceId);
-  await setDoc(docRef, newData);
-  await updateUsers(oldResource.managedBy, newData.managedBy, params);
-  await updateOrganisation(oldResource, newData, params);
-  return "nothing to update";
+  try {
+    let oldResource = await getDoc(doc(db, "resources", params.resourceId));
+
+    if (!oldResource || !oldResource.exists()) {
+      throw "invalid resource id";
+    }
+    oldResource = oldResource.data();
+    let organisation = await getDoc(
+      doc(db, "organisations", params.organisationId)
+    );
+    if (!organisation.exists()) {
+      throw "invalid organisation id";
+    }
+    organisation = organisation.data();
+    if (!organisation.resources.includes(params.resourceId)) {
+      throw "invalid resource id";
+    }
+
+    newData.updatedAt = new Date();
+    newData.updatedBy = "bhanu";
+    delete newData.imageKeys;
+    newData.managedBy = newData.managedBy.reduce(
+      (acc, current) => [...acc, current.id],
+      []
+    );
+    let docRef = doc(db, "resources", params.resourceId);
+    await setDoc(docRef, newData);
+    await updateUsers(oldResource.managedBy, newData, params);
+    await updateOrganisation(oldResource, newData, params, organisation);
+
+    return { validity: 1 };
+  } catch (e) {
+    return { validity: 0 };
+  }
 };
 
-let updateUsers = async (old, newManagers, params) => {
-  // let old = oldManagers.reduce((acc, current) => [...acc, current.id], []);
-  console.log("\n\n\n\n", old, "\n", newManagers, "\n\n\n\n");
+let getOrganisation = async (orgId) => {
+  let organisation = await getDoc(doc(db, "organisations", orgId));
+  if (organisation.exists()) {
+    organisation = JSON.parse(JSON.stringify(organisation.data()));
+    return { validity: 1, data: { ...organisation, id: orgId } };
+  } else {
+    return { validity: 0, error: "invalid organisation id" };
+  }
+};
 
-  newManagers.map(async (manager) => {
+let updateUsers = async (old, newData, params) => {
+  // let old = oldManagers.reduce((acc, current) => [...acc, current.id], []);
+
+  newData.managedBy.map(async (manager) => {
     if (!old.includes(manager)) {
       console.log("updating to mangaer this manager", manager);
       await updateDoc(doc(db, "users", manager), {
         userType: "manager",
         organisationId: params.organisationId,
         resourceId: params.resourceId,
+        resourceName: newData.name,
       });
     }
   });
   old.map(async (manager) => {
-    if (!newManagers.includes(manager)) {
+    if (!newData.managedBy.includes(manager)) {
       console.log("removing this manager", manager);
       await updateDoc(doc(db, "users", manager), {
         userType: "user",
         organisationId: deleteField(),
         resourceId: deleteField(),
+        resourceName: deleteField(),
       });
     }
   });
 };
 
-let updateOrganisation = async (oldResource, newResource, params) => {
-  let organisation = await getDoc(
-    doc(db, "organisations", params.organisationId)
-  );
-  organisation = organisation.data();
+let updateOrganisation = async (
+  oldResource,
+  newResource,
+  params,
+  organisation
+) => {
   oldResource.managedBy.map((manager) => {
     if (!newResource.managedBy.includes(manager)) {
       organisation.managers = organisation.managers.filter((x) => x != manager);
@@ -172,13 +202,32 @@ let checkManager = async (email) => {
 
 const Page = async ({ params }) => {
   let querySnapshot = await getData(params);
-  return (
-    <EditResource
-      params={params}
-      existingResource={querySnapshot}
-      setData={updateResource}
-      checkManager={checkManager}
-    />
-  );
+  let organisation = await getOrganisation(params.organisationId);
+  try {
+    if (organisation.validity) {
+      organisation = organisation.data;
+      if (!organisation.resources.includes(params.resourceId)) {
+        throw `this resource is not a part of this organisation`;
+      }
+    } else {
+      throw organisation.error;
+    }
+    if (querySnapshot.validity) {
+      querySnapshot = querySnapshot.data;
+      return (
+        <EditResource
+          organisation={organisation}
+          params={params}
+          existingResource={querySnapshot}
+          setData={updateResource}
+          checkManager={checkManager}
+        />
+      );
+    } else {
+      throw querySnapshot.error;
+    }
+  } catch (e) {
+    return <h1>{e}</h1>;
+  }
 };
 export default Page;

@@ -67,7 +67,7 @@ const rulesCheck = (name, varname) => {
   let { data, validity } = stringCheck(name);
   if (!validity) return { data: `${varname} ${data}`, validity: 0 };
   data = data.toLowerCase();
-  var format = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/;
+  var format = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
   if (format.test(data))
     return {
       data: `${varname} cannot contain any special characters`,
@@ -123,9 +123,9 @@ const createResourceCheck = (resource) => {
     resource.name = nameCheck(resource.name, "Name of the Resource");
   if (resource.type) resource.type = nameCheck(resource.type, "type");
   if (resource.address1)
-    resource.address1 = nameCheck(resource.address1, "address1");
+    resource.address1 = stringCheck(resource.address1, "address1");
   if (resource.address2)
-    resource.address2 = nameCheck(resource.address2, "address2");
+    resource.address2 = stringCheck(resource.address2, "address2");
   if (resource.city) resource.city = nameCheck(resource.city, "city");
   if (resource.contact) resource.contact = contactCheck(resource.contact);
   if (resource.email) resource.email = emailCheck(resource.email);
@@ -186,8 +186,8 @@ const formDataCheck = (resource) => {
   resource.rules = rulesCheck(resource.rules, "rules");
   resource.name = nameCheck(resource.name, "Name of the Resource");
   resource.type = nameCheck(resource.type, "type");
-  resource.address1 = nameCheck(resource.address1, "address1");
-  resource.address2 = nameCheck(resource.address2, "address2");
+  resource.address1 = stringCheck(resource.address1, "address1");
+  resource.address2 = stringCheck(resource.address2, "address2");
   resource.city = nameCheck(resource.city, "city");
   resource.contact = contactCheck(resource.contact);
   resource.email = emailCheck(resource.email);

@@ -16,25 +16,52 @@ import {
   updateDoc,
   deleteField,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import db from "@/lib/firebase";
 import { redirect } from "next/navigation";
 
 const getOrganisation = async (orgId) => {
   "use server";
-  let docRef = doc(db, "organisations", orgId);
-  let res = await getDoc(docRef);
-  if (res.exists()) {
-    let result = { id: res.id };
-    res = JSON.parse(JSON.stringify(res.data()));
-    let admins = await Promise.all(
-      res.admins.map(async (admin) => {
-        let user = await getUserDoc(admin);
-        return user;
-      })
-    );
-    res.admins = [...admins];
-    result = { ...result, ...res };
-    return result;
+  try {
+    let docRef = doc(db, "organisations", orgId);
+    let res = await getDoc(docRef);
+    if (!res) throw "";
+    if (res.exists()) {
+      let result = { id: res.id };
+      res = JSON.parse(JSON.stringify(res.data()));
+      let admins = await Promise.all(
+        res.admins.map(async (admin) => {
+          let user = await getUserDoc(admin);
+          return user;
+        })
+      );
+      res.admins = [...admins];
+      let managers = await Promise.all(
+        res.managers.map(async (admin) => {
+          let user = await getUserDoc(admin);
+          return user;
+        })
+      );
+      res.managers = [...managers];
+      let resources = await Promise.all(
+        res.resources.map(async (admin) => {
+          let user = await getResourceDoc(admin);
+          return user;
+        })
+      );
+      res.resources = [...resources];
+      result = { ...result, ...res };
+      return { validity: 1, data: result };
+    }
+  } catch (e) {
+    return { validity: 0, error: "error while loading organisation " };
+  }
+};
+const getResourceDoc = async (resource) => {
+  let resourceDoc = await getDoc(doc(db, "resources", resource));
+  if (resourceDoc.exists()) {
+    let id = resourceDoc.id;
+    resourceDoc = resourceDoc.data();
+    return { ...resourceDoc, id: resource };
   }
 };
 
@@ -151,9 +178,6 @@ const editOrganisation = async (newOrganisation, id) => {
       return [...val, admin.id];
     }, []);
     console.log(newOrganisation);
-    //loop  through new organisation and remove or add users accordingly
-
-    console.log("\nupating\n", id);
 
     await updateAdmins(oldOrganisation.admins, newOrganisation.admins, id);
 
@@ -161,20 +185,24 @@ const editOrganisation = async (newOrganisation, id) => {
       merge: true,
     });
 
-    return { validity: 1, data: "Resource has been edited" };
+    return { validity: 1, data: "Organisation has been edited" };
   } catch (e) {
-    return { validity: 0, error: "Error while editing the resources" };
+    return { validity: 0, error: "Error while editing the Organisation" };
   }
   //need to add error
 };
 export default async function Page({ params }) {
   let organisation = await getOrganisation(params.organisationId);
-
-  return (
-    <EditOrganisation
-      organisation={organisation}
-      getUser={getUser}
-      editOrganisation={editOrganisation}
-    />
-  );
+  if (organisation.validity) {
+    organisation = organisation.data;
+    return (
+      <EditOrganisation
+        organisation={organisation}
+        getUser={getUser}
+        editOrganisation={editOrganisation}
+      />
+    );
+  } else {
+    return <h1>{organisation.error}</h1>;
+  }
 }

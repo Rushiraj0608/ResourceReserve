@@ -171,7 +171,6 @@ const CreateResource = ({
         lastName: user.lastName || "no last name",
       };
       await submitResource(resource, newResourceId);
-      console.log(resource);
     }
   };
   const setTags = (tags) => {
@@ -346,8 +345,12 @@ const CreateResource = ({
                 )}
               </div>
               <label>Tags</label>
-              <Tags setTags={setTags} tags={resource.tags} />
-
+              <span>
+                <Tags setTags={setTags} tags={resource.tags} />
+                {errors && errors.tags && errors.tags.length > 0 && (
+                  <p className="text-red-600">{errors.tags}</p>
+                )}
+              </span>
               <AddImages images={resource.images} setImages={setImages} />
               <label>Schedule</label>
               <div>

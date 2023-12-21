@@ -7,21 +7,23 @@ import AddImages from "../../helperAndComponents/addImages";
 import { formDataCheck } from "../../helperAndComponents/helper";
 import AddManager from "../../helperAndComponents/AddManagers";
 
-import { s3 } from "../../../../../lib/config";
+import { s3 } from "@/lib/config";
 import { getUserData } from "@/app/actions/user";
 import Loading from "@/app/components/ui/Loading";
 import sendEmail from "@/lib/email";
 import { toast } from "react-toastify";
-import { redirect } from "next/dist/server/api-utils";
 import { useRouter } from "next/navigation";
 
-const EditResource = ({ existingResource, params, setData, checkManager }) => {
+const EditResource = ({
+  existingResource,
+  params,
+  setData,
+  checkManager,
+  organisation,
+}) => {
   // console.log(existingResource);
   let allowedUsers = ["manager", "admin", "superAdmin"];
-  let currentUser = {
-    userType: "admin",
-    organisation: "someRandomOrganisation",
-  };
+
   let router = useRouter();
   let [resource, setResource] = useState(existingResource);
   let [errors, setErrors] = useState({});
@@ -91,13 +93,6 @@ const EditResource = ({ existingResource, params, setData, checkManager }) => {
       })
       .promise();
 
-    const filteredData = images.Contents.map((eachItem) => {
-      if (eachItem.Key.endsWith("/")) {
-        return;
-      } else {
-        return eachItem.Key;
-      }
-    }).filter(Boolean);
     let links = [];
     await Promise.all(
       resourceCopy.images.map(async (image) => {
@@ -123,6 +118,13 @@ const EditResource = ({ existingResource, params, setData, checkManager }) => {
       })
     );
     resourceCopy.images = [...links];
+    const filteredData = images.Contents.map((eachItem) => {
+      if (eachItem.Key.endsWith("/")) {
+        return;
+      } else {
+        return eachItem.Key;
+      }
+    }).filter(Boolean);
     filteredData.map(async (key) => {
       if (!resourceCopy.images.includes(key)) {
         console.log("need to delete this", key);
@@ -136,23 +138,30 @@ const EditResource = ({ existingResource, params, setData, checkManager }) => {
 
   const editResource = async (event) => {
     event.preventDefault();
+    setLoading(1);
     //i guess i dont need this cuz im using onChange
     console.log(resource);
     let result = formDataCheck(resource);
+
     setResource({ ...result.resource });
     if (!result.validity) {
       setErrors({ ...result.errors });
     } else {
       setErrors({});
+      console.log("trying");
       let updateResource = { ...result.resource };
 
       let images = await updateImages(updateResource);
       console.log(images);
       updateResource.images = [...images];
-      console.log(updateResource, existingResource);
-      let edit = await setData(result.resource, params);
+
+      console.log("cant find");
+      let edit = await setData(updateResource, params);
+
       if (edit.validity) {
+        setLoading(0);
         toast.success("Resource has been edited");
+
         router.push(`/dashboard/managerResources/${params.resourceId}`);
       } else {
         toast.error("Error while editing resource");
@@ -220,7 +229,7 @@ const EditResource = ({ existingResource, params, setData, checkManager }) => {
   if (!loading) {
     if (!user) {
       toast.warn("User is not logged in");
-      router.push("/");
+      // router.push("/");
 
       return <h1>Login Credentials Missing</h1>;
     } else if (
@@ -228,22 +237,25 @@ const EditResource = ({ existingResource, params, setData, checkManager }) => {
       (!user.userType || !allowedUsers.includes(user.userType))
     ) {
       toast.error("User is not allowed to access this route");
-      router.push("/");
-
-      return <h1>Not authorized to use this page</h1>;
+      // router.push("/");
     } else {
+      if (user.userType == "manager") {
+        if (!organisation.managers.includes(user.id)) {
+          toast.error("User is not allowed to access this route");
+          // router.push("/");
+        }
+      } else if (user.userType == "admin") {
+        if (!organisation.admins.includes(user.id)) {
+          toast.error("User is not allowed to1 access this route");
+          // router.push("/");
+        }
+      }
       return (
         <div className="bg-white h-full w-full text-black m-auto pt-40">
-          <button
-            onClick={async () => {
-              console.log(await updateImages());
-            }}
-          >
-            edit images
-          </button>
           <p className="text-center mb-2 text-8xl font-bold">EDIT RESOURCE</p>
+          <button onClick={() => console.log(resource)}>print</button>
           <form onSubmit={editResource}>
-            <div className=" shadow-[0_20px_40px_rgba(0,0,0,0.3)] my-10  bg-white w-10/12 m-auto gap-y-5 p-10 grid grid-cols-3 [&>*]:p-4  [&>*:nth-child(odd)]:bg-green-500 [&>*:nth-child(even)]:col-span-2">
+            <div className=" shadow-[0_20px_40px_rgba(0,0,0,0.3)] my-10  bg-white w-10/12 m-auto gap-y-5 p-10 grid grid-cols-3 [&>*]:p-4  [&>*:nth-child(odd)]:text-right [&>*:nth-child(even)]:col-span-2">
               <label htmlFor="editResourceName">Name of the Resource</label>
               <div>
                 <input
@@ -542,7 +554,7 @@ const EditResource = ({ existingResource, params, setData, checkManager }) => {
               <AddManager
                 setManager={editManager}
                 managers={resource.managedBy}
-                currentUser={currentUser}
+                currentUser={user}
                 addManager={addManager}
               />
 

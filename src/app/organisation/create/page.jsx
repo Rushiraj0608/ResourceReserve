@@ -11,8 +11,8 @@ import {
   where,
   updateDoc,
 } from "firebase/firestore";
-// import { db } from "../../config";
-import { db } from "@/lib/firebase";
+
+import db from "@/lib/firebase";
 
 let checkManager = async (adminEmail) => {
   "use server";
@@ -68,15 +68,35 @@ let checkManager = async (adminEmail) => {
 let checkOrganisationEmail = async (email) => {
   "use server";
   let colRef = collection(db, "organisations");
-  let q = query(colRef, where("email", "==", email));
-  q = await getDocs(q);
+  let org = query(colRef, where("email", "==", email));
+  org = await getDocs(org);
   let organisation = {};
-  q.forEach((x) => {
+  org.forEach((x) => {
     organisation = x.data();
   });
-
-  if (Object.keys(organisation).length > 0) {
-    return { data: "organisation with this email already exists", validity: 0 };
+  colRef = collection(db, "resources");
+  let res = query(colRef, where("email", "==", email));
+  res = await getDocs(res);
+  let resource = {};
+  res.forEach((x) => {
+    resource = x.data();
+  });
+  colRef = collection(db, "users");
+  let user = query(colRef, where("email", "==", email));
+  user = await getDocs(user);
+  let docu = {};
+  user.forEach((x) => {
+    docu = x.data();
+  });
+  if (
+    Object.keys(organisation).length > 0 ||
+    Object.keys(resource).length > 0 ||
+    Object.keys(docu).length > 0
+  ) {
+    return {
+      error: "organisation with this email already exists",
+      validity: 0,
+    };
   } else {
     return { validity: 1 };
   }
@@ -97,28 +117,34 @@ let addOrganisation = async (newOrganisation) => {
   newOrganisation.updatedAt = new Date();
   newOrganisation.managers = [];
   newOrganisation.resources = [];
+  newOrganisation.members = [];
+  newOrganisation.rquests = [];
 
-  let organisation = await checkOrganisationEmail(newOrganisation.email);
-  console.log(organisation, "createOrd");
-  if (organisation.validity) {
-    newOrganisation.admins = newOrganisation.admins.map((admin) => admin.id);
-    const newDoc = await addDoc(
-      collection(db, "organisations"),
-      newOrganisation
-    );
-    console.log(
-      newDoc.id,
-      "kadbfkbasdkjbfuasbdfbhkajdsfky",
-      newOrganisation,
-      newOrganisation.createdBy
-    );
-    newOrganisation.admins.map(async (admin) => {
-      updateUser(admin, newDoc.id);
-      console.log("updated as admin");
-    });
-    return { doc: newDoc.id, validity: 1 };
-  } else {
-    return { validity: 0, data: "error while creating organisation" };
+  try {
+    let organisation = await checkOrganisationEmail(newOrganisation.email);
+    console.log(organisation, "createOrd");
+    if (organisation.validity) {
+      newOrganisation.admins = newOrganisation.admins.map((admin) => admin.id);
+      const newDoc = await addDoc(
+        collection(db, "organisations"),
+        newOrganisation
+      );
+      console.log(
+        newDoc.id,
+        "kadbfkbasdkjbfuasbdfbhkajdsfky",
+        newOrganisation,
+        newOrganisation.createdBy
+      );
+      newOrganisation.admins.map(async (admin) => {
+        updateUser(admin, newDoc.id);
+        console.log("updated as admin");
+      });
+      return { doc: newDoc.id, validity: 1 };
+    } else {
+      throw organisation.error;
+    }
+  } catch (e) {
+    return { validity: 0, data: e || "error while creating organisation" };
   }
 };
 

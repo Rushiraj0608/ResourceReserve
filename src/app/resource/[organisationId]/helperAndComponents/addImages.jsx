@@ -1,14 +1,42 @@
 "use client";
 import Image from "next/image";
 import upload from "./images.png";
+import { useState } from "react";
 
 function App({ setImages, images }) {
+  let [error, setError] = useState("");
   function handleChange(e) {
+    if (images.length > 4) setError("cant add more than 5 images");
     let data = e.target.files[0];
-    let image = [...images, { blob: URL.createObjectURL(data), file: data }];
-    setImages(image);
+    let flag = 0;
+    let temp = [...images];
+    images.map((image) => {
+      if (typeof image == "string") {
+        let str = image.split(/\.com\/(.*?)\?/)[1];
+        str = decodeURIComponent(str);
+        if (str == data.name) {
+          console.log("preventing");
+          flag = 1;
+        }
+      } else if (typeof image == "object") {
+        if (image.file.name == data.name) {
+          console.log("preventing");
+          flag = 1;
+        }
+      }
+    });
+    if (flag) {
+      setError("the image already exists");
+      setTimeout(() => setError(""), 10000);
+    } else {
+      console.log("adding new");
+      temp = [...images, { blob: URL.createObjectURL(data), file: data }];
+    }
+
+    setImages(temp);
     e.target.value = "";
   }
+
   function removeImage(name) {
     let image = images.filter((x) => (x.blob || x) != name);
     setImages(image);
@@ -49,10 +77,10 @@ function App({ setImages, images }) {
               </button>
             </span>
           ))}
+        {error && error?.length >= 5 && (
+          <p className="text-red-500 text-center">{error}</p>
+        )}
       </span>
-      {images && images?.length >= 5 && (
-        <p className="text-red-500 text-center">you can add atmost 5 images</p>
-      )}
     </>
   );
 }

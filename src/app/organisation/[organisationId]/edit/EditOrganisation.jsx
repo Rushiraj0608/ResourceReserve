@@ -89,6 +89,7 @@ const EditOrganisation = (props) => {
   };
   const editOrganisation = async (e) => {
     e.preventDefault();
+    setLoading(1);
     console.log("editing client side");
     let { data, validity } = editOrganisationCheck(organisation);
     console.log(data, validity);
@@ -110,8 +111,8 @@ const EditOrganisation = (props) => {
 
       let edit = await props.editOrganisation(data, organisation.id);
       if (edit.validity) {
+        setLoading(0);
         toast.success("Organisation has been edited");
-
         router.push(`/organisation/${organisation.id}`);
       } else {
         toast.error("Error while editing the organisation");
@@ -143,6 +144,18 @@ const EditOrganisation = (props) => {
 
       return <h1>Not authorized to use this page</h1>;
     } else {
+      if (user.userType == "admin") {
+        let flag = 0;
+        organisation.admins.map((admin) => {
+          if (admin.id == user.id) {
+            flag = 1;
+          }
+        });
+        if (!flag) {
+          toast.error("User is not allowed to access this route");
+          router.push("/");
+        }
+      }
       return (
         <div className="bg-white h-screen w-full text-black grid grid-rows-4 justify-items-center">
           <p className="text-8xl font-extrabold text-center my-10  h-fit">
@@ -225,16 +238,25 @@ const EditOrganisation = (props) => {
                           <p>
                             Resource Name :
                             <Link
-                              href={`/resource/${organisation.id}/${resource.resourceId}`}
+                              href={`/resource/${organisation.id}/${resource.id}`}
                             >
-                              {resource.resourceName}
+                              {resource.name}
                             </Link>
                           </p>
-                          <p>Managed by : {resource.managedBy}</p>
+                          <p>
+                            Managed by :{" "}
+                            {organisation.managers.map((manager) => {
+                              if (resource.managedBy.includes(manager.id)) {
+                                return (
+                                  <p>{manager.name || manager.firstName}</p>
+                                );
+                              }
+                            })}
+                          </p>
                           <button
                             type="button"
                             onClick={() => {
-                              let path = `/resource/${organisation.id}/${resource.resourceId}/edit`;
+                              let path = `/resource/${organisation.id}/${resource.id}/edit`;
                               router.push(path);
                             }}
                             className="px-4 py-2 bg-green-500 w-fit rounded-xl"

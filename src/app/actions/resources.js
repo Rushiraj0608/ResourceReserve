@@ -11,6 +11,7 @@ import {
   updateDoc,
   collection,
 } from "firebase/firestore";
+import { s3 } from "@/lib/config";
 
 export async function getResourcesByOrganizationId(id) {
   const q = query(
@@ -50,12 +51,23 @@ export async function getResourcesByOrganizationIdAndManagedByUserId(
 
 // get resource by id
 export async function getResourceById(id) {
-  const docRef = doc(db, "resources", id.resourceId);
+  const docRef = doc(db, "resources", id);
   const docSnap = await getDoc(docRef);
 
   if (docSnap.exists()) {
     const resource = { ...docSnap.data(), id: docSnap.id };
     const data = JSON.parse(JSON.stringify(resource));
+    data.images = await Promise.all(
+      data.images.map((image) => {
+        const url = s3.getSignedUrl("getObject", {
+          Bucket: "resourcereserves3",
+          Key: image,
+          Expires: 300,
+        });
+        console.log(url);
+        return url;
+      })
+    );
     return data;
   } else {
     console.log("No such document!");
