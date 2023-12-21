@@ -66,7 +66,7 @@ async function submitResource(data, resourceId) {
         merge: true,
       }
     );
-    redirect(`/dashboard/managerResources/${resourceId}`);
+    return { validity: 1 };
   } else {
     return { validity: 0, data: organisation.data };
   }

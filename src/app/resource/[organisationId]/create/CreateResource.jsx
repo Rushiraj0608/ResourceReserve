@@ -170,7 +170,12 @@ const CreateResource = ({
         firstName: user.firstName || user.name,
         lastName: user.lastName || "no last name",
       };
-      await submitResource(resource, newResourceId);
+      let add = await submitResource(resource, newResourceId);
+      if (add.validity) {
+        router.push(`/dashboard/managerResources/${newResourceId}`);
+      } else {
+        toast.error("Error while creating resource");
+      }
     }
   };
   const setTags = (tags) => {
@@ -617,11 +622,9 @@ const CreateResource = ({
                         setResource({ ...resource, city: e.target.value });
                       }}
                     />
-                    {errors &&
-                      errors.address2 &&
-                      errors.address2.length > 0 && (
-                        <p className="text-red-600">{errors.address2}</p>
-                      )}
+                    {errors && errors.city && errors.city.length > 0 && (
+                      <p className="text-red-600">{errors.city}</p>
+                    )}
                   </span>
                 </span>
                 <span>

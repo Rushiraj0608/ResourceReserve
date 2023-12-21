@@ -237,17 +237,17 @@ const EditResource = ({
       (!user.userType || !allowedUsers.includes(user.userType))
     ) {
       toast.error("User is not allowed to access this route");
-      // router.push("/");
+      router.push("/");
     } else {
       if (user.userType == "manager") {
         if (!organisation.managers.includes(user.id)) {
           toast.error("User is not allowed to access this route");
-          // router.push("/");
+          router.push("/");
         }
       } else if (user.userType == "admin") {
         if (!organisation.admins.includes(user.id)) {
           toast.error("User is not allowed to1 access this route");
-          // router.push("/");
+          router.push("/");
         }
       }
       return (
@@ -270,6 +270,9 @@ const EditResource = ({
                     setResource({ ...resource, name: e.target.value })
                   }
                 />
+                {errors && errors.name && errors.name.length > 0 && (
+                  <p className="text-red-600">{errors.name}</p>
+                )}
               </div>
               <label
                 htmlFor="editResourceDescription"
@@ -290,6 +293,11 @@ const EditResource = ({
                   }
                   defaultValue={resource.description}
                 ></textarea>
+                {errors &&
+                  errors.description &&
+                  errors.description.length > 0 && (
+                    <p className="text-red-600">{errors.description}</p>
+                  )}
               </div>
               <label htmlFor="editResourceType">Type of the Resource</label>
               <div>
@@ -305,11 +313,18 @@ const EditResource = ({
                   }
                   required
                 />
+                {errors && errors.type && errors.type.length > 0 && (
+                  <p className="text-red-600">{errors.type}</p>
+                )}
               </div>
 
               <label>Tags</label>
-              <Tags setTags={setTags} tags={resource.tags} />
-
+              <span>
+                <Tags setTags={setTags} tags={resource.tags} />
+                {errors && errors.tags && errors.tags.length > 0 && (
+                  <p className="text-red-600">{errors.tags}</p>
+                )}
+              </span>
               <AddImages images={resource.images} setImages={setImages} />
               <label>Schedule</label>
               <TimeSelect
@@ -343,6 +358,11 @@ const EditResource = ({
                     }
                     defaultValue={resource.reservationLength}
                   />
+                  {errors &&
+                    errors.reservationLength &&
+                    errors.reservationLength.length > 0 && (
+                      <p className="text-red-600">{errors.reservationLength}</p>
+                    )}
                 </span>
 
                 <span>
@@ -363,6 +383,11 @@ const EditResource = ({
                     }
                     defaultValue={resource.reservationGap}
                   />
+                  {errors &&
+                    errors.reservationGap &&
+                    errors.reservationGap.length > 0 && (
+                      <p className="text-red-600">{errors.reservationGap}</p>
+                    )}
                 </span>
                 <span>
                   <label htmlFor="editResourceCapacity" className="mb-3">
@@ -380,6 +405,9 @@ const EditResource = ({
                     }
                     defaultValue={resource.capacity}
                   />
+                  {errors && errors.capacity && errors.capacity.length > 0 && (
+                    <p className="text-red-600">{errors.capacity}</p>
+                  )}
                 </span>
                 <span className="text-center">
                   <label className="block">
@@ -444,6 +472,9 @@ const EditResource = ({
                     setResource({ ...resource, rules: e.target.value })
                   }
                 ></textarea>
+                {errors && errors.rules && errors.rules.length > 0 && (
+                  <p className="text-red-600">{errors.rules}</p>
+                )}
               </span>
               <label>Contact</label>
               <div className="mt-5 mb-5 grid grid-cols-2 gap-x-5 gap-y-3 justify-items-center">
@@ -463,6 +494,9 @@ const EditResource = ({
                       setResource({ ...resource, email: e.target.value })
                     }
                   />
+                  {errors && errors.email && errors.email.length > 0 && (
+                    <p className="text-red-600">{errors.email}</p>
+                  )}
                 </span>
                 <span>
                   <label htmlFor="editResourceContact" className="mb-3">
@@ -479,6 +513,9 @@ const EditResource = ({
                       setResource({ ...resource, contact: e.target.value })
                     }
                   />
+                  {errors && errors.contact && errors.contact.length > 0 && (
+                    <p className="text-red-600">{errors.contact}</p>
+                  )}
                 </span>
                 <span>
                   <label htmlFor="editResourceAddress1" className="block">
@@ -496,6 +533,9 @@ const EditResource = ({
                       setResource({ ...resource, address1: e.target.value })
                     }
                   />
+                  {errors && errors.address1 && errors.address1.length > 0 && (
+                    <p className="text-red-600">{errors.address1}</p>
+                  )}
                 </span>
                 <span>
                   <label htmlFor="editResourceAddress2" className="block">
@@ -512,6 +552,9 @@ const EditResource = ({
                       setResource({ ...resource, address2: e.target.value })
                     }
                   />
+                  {errors && errors.address2 && errors.address2.length > 0 && (
+                    <p className="text-red-600">{errors.address2}</p>
+                  )}
                 </span>
                 <span>
                   <label htmlFor="editResourceCity" className="block">
@@ -529,6 +572,9 @@ const EditResource = ({
                       setResource({ ...resource, city: e.target.value })
                     }
                   />
+                  {errors && errors.city && errors.city.length > 0 && (
+                    <p className="text-red-600">{errors.city}</p>
+                  )}
                 </span>
                 <span>
                   <label htmlFor="editResourceState" className="block">
@@ -547,6 +593,9 @@ const EditResource = ({
                       </option>
                     ))}
                   </select>
+                  {errors && errors.state && errors.state.length > 0 && (
+                    <p className="text-red-600">{errors.state}</p>
+                  )}
                 </span>
               </div>
               <label> Manager</label>
