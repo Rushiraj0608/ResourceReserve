@@ -11,6 +11,7 @@ import { redirect } from "next/navigation";
 import OrganizationCard from "../components/ui/OrganizationCard";
 import ResourceCard from "../components/ui/ResourceCard";
 import { getUserData } from "../actions/user";
+import Link from "next/link";
 
 const DashboardPage = ({}) => {
   // let currentUser = {
@@ -70,10 +71,14 @@ const DashboardPage = ({}) => {
   }
 
   return (
+    
     <div className="container mx-auto p-4">
       {currentUser.userType === "superAdmin" && (
         <div>
           <h1 className="text-3xl font-bold mb-6">Organizations</h1>
+          <Link href="/organisation/create">
+              Create New Organization
+            </Link>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {organizations.map((organization) => (
               <ul key={organization.id}>

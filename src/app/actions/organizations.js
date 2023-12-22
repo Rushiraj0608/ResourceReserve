@@ -16,7 +16,17 @@ import {
 } from "firebase/firestore";
 
 
+export async function getOrganizations() {
+  const q = query(collection(db, "organisations"));
 
+  const querySnapshot = await getDocs(q);
+  const organizations = [];
+  querySnapshot.forEach((doc) => {
+    organizations.push({ ...doc.data(), id: doc.id });
+  });
+
+  return organizations;
+}
 
 // get organization by id
 export async function getOrganizationById(id) {

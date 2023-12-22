@@ -7,6 +7,7 @@ import {
 } from "../../../actions/organizations";
 import { redirect } from "next/navigation";
 import { getUserData } from "@/app/actions/user";
+import Link from "next/link";
 
 const SuperAdminOrgPage = ({ params }) => {
   // const currentUser = {
@@ -47,9 +48,9 @@ const SuperAdminOrgPage = ({ params }) => {
       <div className="text-2xl text-black font-bold mb-4">
         {organization.name}
       </div>
-      <button className="bg-blue-500 text-white px-4 py-2 rounded-md">
-        Edit Organization
-      </button>
+      <Link className='text-black' href={`/organisation/${params.organizationId}/edit`}>
+              Edit Organization
+      </Link>
     </div>
   );
 };
