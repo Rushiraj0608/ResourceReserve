@@ -200,6 +200,42 @@ let checkManager = async (email) => {
   }
 };
 
+const deleteResource = async (resource) => {
+  "use server";
+  //this will delete the resource call editUsers and editOrganisation
+  Promise.all(
+    resource.managedBy.map(async (manager) => {
+      await editUsers(manager.id);
+    })
+  );
+  await editOrganisation(resource.organisationId);
+  await deleteDoc(doc(db, "resources", resource.id));
+};
+const editUsers = async (id) => {
+  "use server";
+
+  //need to update user which will delete the organisation id and resource id and change the userType to user
+  await updateDoc(doc(db, "users", id), {
+    userType: "user",
+    organisationId: deleteField(),
+    resourceId: deleteField(),
+  });
+};
+const editOrganisation = async (id, resourceId) => {
+  "use server";
+
+  //removing resource from the organisation
+  // need to remove the managers from the organisation
+  let organisation = await getDoc(doc(db, "organisation", id));
+  if (organisation.exists()) {
+    organisation = organisation.data();
+    organisation.resources = organisation.resources.filter(
+      (resource) => resource != resourceId
+    );
+
+    await updateDoc(doc(db, "organisation", id), organisation);
+  }
+};
 const Page = async ({ params }) => {
   let querySnapshot = await getData(params);
   let organisation = await getOrganisation(params.organisationId);
@@ -221,6 +257,7 @@ const Page = async ({ params }) => {
           existingResource={querySnapshot}
           setData={updateResource}
           checkManager={checkManager}
+          deleteResource={deleteResource}
         />
       );
     } else {

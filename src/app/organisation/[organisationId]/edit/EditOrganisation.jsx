@@ -368,6 +368,14 @@ const EditOrganisation = (props) => {
               </button>
             </div>
           </form>
+          <button
+            type="button"
+            onClick={() => {
+              props.deleteOrganisation(organisation);
+            }}
+          >
+            Delete Organisation
+          </button>
         </div>
       );
     }

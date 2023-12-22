@@ -191,6 +191,39 @@ const editOrganisation = async (newOrganisation, id) => {
   }
   //need to add error
 };
+
+const deleteOrganisation = async (organisation) => {
+  "use server";
+  //this will delete the organisatio and calls updateUsers and delete resource
+  try {
+    Promise.all(organisation.admins.map(async (admin) => upateUsers(admin.id)));
+    Promise.all(
+      organisation.managers.map(async (manager) => upateUsers(manager.id))
+    );
+    Promise.all(
+      organisation.resources.map(async (resource) =>
+        deleteResource(resource.id)
+      )
+    );
+
+    await deleteDoc(doc(db, "organisations", organisation.id));
+  } catch (e) {
+    console.log(e);
+  }
+};
+const upateUsers = async () => {
+  "use server";
+  // updates the user to normal user and delete fields or organisation id and resource id
+  await updateDoc(doc(db, "users", userId), {
+    userType: "user",
+    organisationId: deleteField(),
+    resourceId: deleteField(),
+  });
+};
+const deleteResource = async (resourceId) => {
+  //deletes the resource
+  await deleteDoc(doc(db, "resources", resourceId));
+};
 export default async function Page({ params }) {
   let organisation = await getOrganisation(params.organisationId);
   if (organisation.validity) {
@@ -200,6 +233,7 @@ export default async function Page({ params }) {
         organisation={organisation}
         getUser={getUser}
         editOrganisation={editOrganisation}
+        deleteOrganisation={deleteOrganisation}
       />
     );
   } else {

@@ -20,6 +20,7 @@ const EditResource = ({
   setData,
   checkManager,
   organisation,
+  deleteResource,
 }) => {
   // console.log(existingResource);
   let allowedUsers = ["manager", "admin", "superAdmin"];
@@ -626,6 +627,14 @@ const EditResource = ({
                 })}
             </div>
           </form>
+          <button
+            type="button"
+            onClick={() => {
+              deleteResource(resource);
+            }}
+          >
+            Delete Resource
+          </button>
         </div>
       );
     }
