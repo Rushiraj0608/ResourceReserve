@@ -15,8 +15,8 @@ const DashboardResourcePage = ({ params }) => {
 
   if (
     currentUser.userType === "user" ||
-    currentUser.userType === "Admin" ||
-    currentUser.userType === "SuperAdmin"
+    currentUser.userType === "admin" ||
+    currentUser.userType === "superAdmin"
   ) {
     redirect("/NoAccess");
   }

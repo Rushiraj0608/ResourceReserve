@@ -17,9 +17,9 @@ const SuperAdminOrgPage = ({ params }) => {
   const [currentUser, setCurrentUser] = useState({});
 
   if (
-    currentUser.userType === "Admin" ||
+    currentUser.userType === "admin" ||
     currentUser.userType === "user" ||
-    currentUser.userType === "Manager"
+    currentUser.userType === "manager"
   ) {
     redirect("/NoAcess"); // Redirect to the custom 403 Forbidden page
   }

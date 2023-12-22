@@ -112,8 +112,8 @@ const organizationPage = ({ params }) => {
 
   if (
     currentUser.userType === "user" ||
-    currentUser.userType === "Manager" ||
-    currentUser.userType === "SuperAdmin"
+    currentUser.userType === "manager" ||
+    currentUser.userType === "superAdmin"
   ) {
     redirect("/NoAccess");
   }

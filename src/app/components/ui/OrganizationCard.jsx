@@ -24,21 +24,23 @@ const OrganizationCard = ({ organization, onDelete, userType }) => {
           />
         )}
         <div className="text-center">
-          <h2 className="text-lg text-black font-semibold">{organization.name}</h2>
+          <h2 className="text-lg text-black font-semibold">
+            {organization.name}
+          </h2>
 
-          {userType === "SuperAdmin" && (
+          {userType === "superAdmin" && (
             <Link href={`dashboard/superAdminOrgs/${organization.id}`}>
               <p className="text-blue-500 mb-2">View Organization</p>
             </Link>
           )}
 
-          {userType === "Admin" && (
+          {userType === "admin" && (
             <Link href={`dashboard/adminOrgs/${organization.id}`}>
               <p className="text-blue-500 mb-2">View Organization</p>
             </Link>
           )}
 
-          {userType === "SuperAdmin" && (
+          {userType === "superAdmin" && (
             <button
               onClick={() => onDelete(organization.id)}
               className="bg-red-500 text-white px-3 py-1 rounded-md"
@@ -52,7 +54,6 @@ const OrganizationCard = ({ organization, onDelete, userType }) => {
               <p className="text-blue-500 mb-2">View Organization</p>
             </Link>
           )}
-
         </div>
       </div>
     </div>

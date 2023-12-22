@@ -4,7 +4,7 @@ import {
   getOrganizationsByAdminId,
   getOrganizations,
   deleteOrganizationById,
-} from '../actions/organizations';
+} from "../actions/organizations";
 import { getResourcesByManagedByUserId } from "../actions/resources";
 import { useEffect, useState } from "react";
 import { redirect } from "next/navigation";
@@ -33,17 +33,17 @@ const DashboardPage = ({}) => {
 
   async function fetchData() {
     try {
-      if (currentUser.userType === "Admin") {
+      if (currentUser.userType === "admin") {
         const organizations = await getOrganizationsByAdminId(currentUser.id);
         setOrganizations(organizations);
       }
 
-      if (currentUser.userType === "SuperAdmin") {
+      if (currentUser.userType === "superAdmin") {
         const organizations = await getOrganizations();
         setOrganizations(organizations);
       }
 
-      if (currentUser.userType === "Manager") {
+      if (currentUser.userType === "manager") {
         const fetchedResources = await getResourcesByManagedByUserId(
           currentUser.id
         );
@@ -71,7 +71,7 @@ const DashboardPage = ({}) => {
 
   return (
     <div className="container mx-auto p-4">
-      {currentUser.userType === "SuperAdmin" && (
+      {currentUser.userType === "superAdmin" && (
         <div>
           <h1 className="text-3xl font-bold mb-6">Organizations</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -88,7 +88,7 @@ const DashboardPage = ({}) => {
         </div>
       )}
 
-      {currentUser.userType === "Admin" && (
+      {currentUser.userType === "admin" && (
         <div>
           <h1 className="text-3xl font-bold mb-6">Your Organizations</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -105,7 +105,7 @@ const DashboardPage = ({}) => {
         </div>
       )}
 
-      {currentUser.userType === "Manager" && (
+      {currentUser.userType === "manager" && (
         <div>
           <h1 className="text-3xl font-bold mb-6">Resources</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

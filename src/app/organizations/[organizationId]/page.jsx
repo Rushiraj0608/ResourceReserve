@@ -49,7 +49,7 @@ const OrganizationPage = ({ params }) => {
               <li key={resource.id} className="border p-4 rounded-md">
                 <div className="flex flex-col items-center">
                   {resource.images && resource.images.length > 0 ? (
-                    <Image
+                    <img
                       src={resource.images[0]}
                       alt={`${resource.name} Image`}
                       width={96}
@@ -69,7 +69,9 @@ const OrganizationPage = ({ params }) => {
                     {resource.name}
                   </h3>
                   <p className="text-sm">{resource.description}</p>
-                  <Link href={`/resource/${organizationId}/${resource.id}`}>View Resource</Link>
+                  <Link href={`/resource/${organizationId}/${resource.id}`}>
+                    View Resource
+                  </Link>
                 </div>
               </li>
             ))}
