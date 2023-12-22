@@ -1,6 +1,6 @@
 'use server'
 
-import { db } from "@/lib/firebase";
+import  db  from "@/lib/firebase";
 import { auth } from "@/lib/auth";
 import { query, where, doc, getDoc, getDocs, setDoc, updateDoc, collection } from "firebase/firestore";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
