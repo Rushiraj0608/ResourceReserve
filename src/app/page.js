@@ -8,7 +8,7 @@ export default async function Home() {
     <div className="flex flex-col items-center justify-center min-h-screen py-2 text-center px-4">
       <Image src="/logo.png" alt="Resource Reserver" width={200} height={200} />
       <h1 className="text-6xl font-bold mt-4">Resource Reserve</h1>
-      {session && (
+      {session && session.user&& (
         <h2 className="text-2xl mt-4">Welcome {session.user.name}</h2>
       )}
 
